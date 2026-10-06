@@ -42,6 +42,12 @@ export function BugReportForm() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [fileName, setFileName] = useState<string | null>(null);
+  // When a site key is configured the captcha must be solved first —
+  // otherwise the server rejects the request. (No site key = dev bypass.)
+  const turnstileRequired = Boolean(
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+  );
+  const captchaPending = turnstileRequired && !turnstileToken;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -229,7 +235,7 @@ export function BugReportForm() {
             </p>
           )}
 
-          <Button type="submit" size="lg" disabled={submitting}>
+          <Button type="submit" size="lg" disabled={submitting || captchaPending}>
             {submitting ? (
               <>
                 <Loader2 aria-hidden className="animate-spin" />
@@ -242,6 +248,11 @@ export function BugReportForm() {
               </>
             )}
           </Button>
+          {captchaPending && (
+            <p className="text-center text-xs text-slate-500">
+              Complete the verification above to enable sending.
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>

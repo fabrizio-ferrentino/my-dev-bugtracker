@@ -25,7 +25,10 @@ export const createBugSchema = z.object({
     .optional()
     .transform((v) => (v === "" ? undefined : v))
     .pipe(z.string().email("Invalid email address.").optional()),
-  turnstileToken: z.string().min(1, "Captcha token is missing."),
+  // May be empty when no site key is configured (dev bypass) or when the
+  // widget hasn't produced a token yet. Emptiness is handled in the route:
+  // verifyTurnstile() rejects it unless the dev bypass applies.
+  turnstileToken: z.string().max(2048).optional().default(""),
   // Collected client-side, all optional, length-capped.
   browser: z.string().max(100).optional(),
   os: z.string().max(100).optional(),
