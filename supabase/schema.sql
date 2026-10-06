@@ -70,6 +70,8 @@ create table if not exists public.ticket_counters (
 );
 
 -- Atomically mint the next BUG-YYYY-NNNN number.
+-- Locked to service_role only (direct anon/authenticated RPC calls would
+-- burn ticket numbers). The app calls it server-side via the service key.
 create or replace function public.mint_ticket_number()
 returns text
 language plpgsql
@@ -93,6 +95,9 @@ begin
 end;
 $$;
 
+revoke all on function public.mint_ticket_number() from public, anon, authenticated;
+grant execute on function public.mint_ticket_number() to service_role;
+
 -- --- Audit / history ------------------------------------------
 create table if not exists public.bug_events (
   id uuid primary key default gen_random_uuid(),
@@ -110,6 +115,7 @@ create index if not exists bug_events_bug_idx on public.bug_events (bug_id, crea
 create or replace function public.touch_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at = now();
