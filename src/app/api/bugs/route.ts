@@ -56,9 +56,9 @@ export async function POST(req: Request) {
   const raw = {
     title: form.get("title"),
     description: form.get("description"),
-    type: form.get("type"),
-    priority: form.get("priority"),
-    email: form.get("email"),
+    type: form.get("type") ?? undefined,
+    priority: form.get("priority") ?? undefined,
+    email: form.get("email") ?? undefined,
     turnstileToken: form.get("turnstileToken"),
     browser: form.get("browser") || undefined,
     os: form.get("os") || undefined,
