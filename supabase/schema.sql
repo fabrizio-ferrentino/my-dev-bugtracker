@@ -164,6 +164,16 @@ create policy "auth_all_events"
 -- Allow the server (service role bypasses RLS, so this is for completeness):
 -- no public read. Admin downloads via signed URLs generated server-side.
 
+-- The admin detail page creates signed URLs with the *authenticated user*
+-- session (not service-role), so RLS must allow admins to read objects
+-- in this bucket. Without this policy screenshots upload fine but never
+-- display in the dashboard.
+drop policy if exists "auth_read_screenshots" on storage.objects;
+create policy "auth_read_screenshots"
+  on storage.objects for select
+  to authenticated
+  using (bucket_id = 'screenshots');
+
 -- If you prefer managing storage policies in SQL:
 -- insert into storage.buckets (id, name, public)
 -- values ('screenshots', 'screenshots', false)
