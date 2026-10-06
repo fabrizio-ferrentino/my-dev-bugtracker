@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Link2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Link2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,13 @@ export default function SuccessPage({ searchParams }: Props) {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col items-center justify-center px-4 py-10">
+      <Link
+        href="/"
+        className="mb-4 inline-flex items-center gap-1 self-start text-sm text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+      >
+        <ArrowLeft aria-hidden className="size-4" />
+        Back to home
+      </Link>
       <Card className="w-full">
         <CardHeader className="items-center text-center">
           <CheckCircle2 aria-hidden className="size-12 text-emerald-600" />
