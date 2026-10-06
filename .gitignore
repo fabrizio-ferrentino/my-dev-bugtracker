@@ -28,6 +28,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# local-only spec / notes (may contain private info — never commit)
+AGENTS.md
+
 # vercel
 .vercel
 
