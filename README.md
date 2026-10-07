@@ -2,6 +2,24 @@
 
 A minimal, self-hostable **bug tracker / helpdesk** template. Anyone can submit a bug report **without an account**; you manage everything from a private admin dashboard.
 
+## Why this exists
+
+This project was born with a single goal: a complete, professional bug tracker
+you can **deploy at zero cost** — every piece of the stack runs on a generous
+free tier, with no credit card required and no paid service involved:
+
+| Piece | Service (free tier) | Cost |
+|---|---|---|
+| Hosting + CI/CD | Vercel Hobby | €0 |
+| Postgres + Auth + Storage | Supabase Free | €0 |
+| Admin email notifications | Resend Free | €0 |
+| Anti-spam | Cloudflare Turnstile | €0 |
+
+The only thing that can cost money is your own custom domain, and only if you
+want one — everything else is free forever at this scale. No multi-tenancy, no
+billing, no analytics, no overengineering: just a small product that does its
+job for €0.
+
 - Public report form (`/`) with screenshot upload + Cloudflare Turnstile
 - Bilingual UI (Italian/English) with a language switcher — no extra dependencies
 - Confirmation page with a personal status link (`/success`, `/status`)
@@ -60,6 +78,8 @@ SUPABASE_SERVICE_ROLE_KEY=
 RESEND_API_KEY=
 ADMIN_EMAIL=
 RESEND_FROM_EMAIL=
+# Language of admin notification emails: it (default) or en
+EMAIL_LANG=it
 
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
@@ -107,8 +127,8 @@ notification emails follow `EMAIL_LANG` (`it` default, `en` optional).
 | `/success` | public | Confirmation with ticket number + personal status link. |
 | `/status` | public | Status lookup. Ticket number alone shows minimal info; the personal link (`?token=…`) shows full public-safe info. Internal notes are never exposed. |
 | `/admin/login` | you | Supabase Auth email/password login. |
-| `/admin` | you | Stats, search, filters (status/priority/type), sorting, pagination. |
-| `/admin/bugs/[id]` | you | Full detail, screenshot, edit status/priority/type/notes, history timeline. |
+| `/admin` | you | Stats, search, filters (status/priority/type/app), sorting, pagination. |
+| `/admin/bugs/[id]` | you | Full detail, screenshot, edit status/priority/type/notes, delete ticket, history timeline. |
 | `POST /api/bugs` | public | Rate-limited (5/hour/IP), Turnstile-verified, Zod-validated ticket creation. |
 | `GET /api/status` | public | Rate-limited (30/min/IP) public-safe lookup. |
 
@@ -132,10 +152,11 @@ src/
 │       └── status/route.ts      # GET public lookup
 ├── components/
 │   ├── ui/                      # minimal shadcn-style primitives
-│   ├── public/                  # report form, Turnstile, tech info
-│   └── admin/                   # badges, login/logout, ticket editor
+│   ├── public/                  # report form, Turnstile, status lookup, copy-link
+│   └── admin/                   # badges, login/logout, ticket editor, delete
 ├── lib/
 │   ├── supabase/ (client, server, admin)
+│   ├── i18n/                    # bilingual dictionaries (it/en) + lang helper
 │   ├── constants.ts             # labels + centralized status/priority colors
 │   ├── validation.ts            # Zod schemas
 │   ├── turnstile.ts · rate-limit.ts · resend.ts · ticket.ts
