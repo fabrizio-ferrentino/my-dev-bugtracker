@@ -66,9 +66,21 @@ TURNSTILE_SECRET_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_SITE_NAME=Bug Tracker
 NEXT_PUBLIC_SITE_TAGLINE=
+
+# Optional: reporter application picker (hidden when empty)
+NEXT_PUBLIC_APPS=Website,Mobile App,API
 ```
 
 `.env*` files are gitignored. Never commit secrets.
+
+### Optional: application picker
+
+Set `NEXT_PUBLIC_APPS` to a comma-separated list (e.g. `Website,Mobile App,API`)
+to show a required **Application** dropdown in the public form. The choice is
+stored on the ticket, shown in the dashboard (with filter), the ticket detail,
+the reporter status page and the admin email. Leave it empty to hide the
+field entirely. Changing the variable requires restarting `npm run dev`
+(public env vars are inlined at build time).
 
 ## 5. Deploy
 

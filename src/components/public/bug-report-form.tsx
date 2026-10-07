@@ -11,7 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TurnstileWidget } from "./turnstile-widget";
 import { collectTechInfo } from "./tech-info";
-import { MAX_SCREENSHOT_BYTES } from "@/lib/constants";
+import { MAX_SCREENSHOT_BYTES, getApps } from "@/lib/constants";
 import type { BugPriority, BugType } from "@/types/bug";
 
 interface SuccessPayload {
@@ -48,6 +48,8 @@ export function BugReportForm() {
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
   );
   const captchaPending = turnstileRequired && !turnstileToken;
+  // Optional application picker, configured via NEXT_PUBLIC_APPS.
+  const apps = getApps();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -66,6 +68,9 @@ export function BugReportForm() {
       payload.set("type", String(data.get("type") ?? "BUG"));
       payload.set("priority", String(data.get("priority") ?? "MEDIUM"));
       payload.set("email", String(data.get("email") ?? ""));
+      if (apps.length > 0) {
+        payload.set("app", String(data.get("app") ?? ""));
+      }
       payload.set("turnstileToken", turnstileToken ?? "");
       payload.set("browser", tech.browser);
       payload.set("os", tech.os);
@@ -155,10 +160,33 @@ export function BugReportForm() {
             )}
           </div>
 
+          {apps.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="app">Application *</Label>
+              <Select
+                id="app"
+                name="app"
+                defaultValue={apps[0]}
+                aria-invalid={Boolean(fieldErrors.app)}
+                aria-describedby={fieldErrors.app ? "app-error" : undefined}
+              >
+                {apps.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </Select>
+              {fieldErrors.app && (
+                <p id="app-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
+                  {fieldErrors.app}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="type">Type *</Label>
-              <Select id="type" name="type" defaultValue="BUG">
+              <Label htmlFor="type">Type *</Label>              <Select id="type" name="type" defaultValue="BUG">
                 {TYPE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}

@@ -33,6 +33,8 @@ export interface BugReport {
   priority: BugPriority;
   status: BugStatus;
   email: string | null;
+  /** Application chosen by the reporter (null when not configured). */
+  app: string | null;
   browser: string | null;
   os: string | null;
   viewport: string | null;
@@ -52,6 +54,7 @@ export interface PublicTicketInfo {
   type: BugType;
   priority: BugPriority;
   status: BugStatus;
+  app: string | null;
   created_at: string;
   updated_at: string;
 }

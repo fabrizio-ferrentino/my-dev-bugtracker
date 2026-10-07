@@ -62,7 +62,7 @@ export async function GET(req: Request) {
     }
     const { data, error } = await supabase
       .from("bug_reports")
-      .select("ticket_number,title,type,priority,status,created_at,updated_at")
+      .select("ticket_number,title,type,priority,status,app,created_at,updated_at")
       .eq("public_access_token", token)
       .single();
     if (error || !data) {

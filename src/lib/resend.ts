@@ -42,6 +42,7 @@ export async function sendNewTicketEmail(ticket: BugReport): Promise<void> {
         `Title: ${ticket.title}`,
         `Priority: ${PRIORITY_LABELS[ticket.priority]}`,
         `Type: ${TYPE_LABELS[ticket.type]}`,
+        ...(ticket.app ? [`Application: ${ticket.app}`] : []),
         ticket.email ? `Reporter: ${ticket.email}` : `Reporter: (no email)`,
         ``,
         `Description:`,

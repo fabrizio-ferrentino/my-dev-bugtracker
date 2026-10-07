@@ -186,6 +186,7 @@ function StatusContent() {
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                   Type: {TYPE_LABELS[result.ticket.type as PublicTicketInfo["type"]]} · Priority:{" "}
                   {PRIORITY_LABELS[result.ticket.priority as PublicTicketInfo["priority"]]}
+                  {"app" in result.ticket && result.ticket.app ? ` · ${result.ticket.app}` : ""}
                 </p>
               )}
               <p className="mt-2 text-sm text-slate-500">

@@ -21,7 +21,7 @@ import {
 } from "@/components/admin/badges";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { siteName } from "@/lib/constants";
+import { getApps, siteName } from "@/lib/constants";
 import type { BugReport } from "@/types/bug";
 
 export const metadata = {
@@ -34,6 +34,7 @@ interface SearchParams {
   status?: string;
   priority?: string;
   type?: string;
+  app?: string;
   sort?: string;
   page?: string;
 }
@@ -84,18 +85,21 @@ export default async function AdminDashboard({
   const status = searchParams.status ?? "";
   const priority = searchParams.priority ?? "";
   const type = searchParams.type ?? "";
+  const appFilter = searchParams.app ?? "";
   const sort = searchParams.sort === "oldest" ? "oldest" : "newest";
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const apps = getApps();
 
   let query = supabase
     .from("bug_reports")
     .select(
-      "id,ticket_number,title,type,priority,status,email,created_at",
+      "id,ticket_number,title,type,priority,status,email,app,created_at",
       { count: "exact" },
     );
   if (status) query = query.eq("status", status);
   if (priority) query = query.eq("priority", priority);
   if (type) query = query.eq("type", type);
+  if (appFilter) query = query.eq("app", appFilter);
   if (q) query = query.or(`ticket_number.ilike.%${q}%,title.ilike.%${q}%`);
   query = query.order("created_at", {
     ascending: sort === "oldest",
@@ -105,7 +109,7 @@ export default async function AdminDashboard({
   const { data: tickets } = await query;
   const list = (tickets ?? []) as Pick<
     BugReport,
-    "id" | "ticket_number" | "title" | "type" | "priority" | "status" | "email" | "created_at"
+    "id" | "ticket_number" | "title" | "type" | "priority" | "status" | "email" | "app" | "created_at"
   >[];
 
   function hrefWith(params: Record<string, string>) {
@@ -114,6 +118,7 @@ export default async function AdminDashboard({
     if (status) sp.set("status", status);
     if (priority) sp.set("priority", priority);
     if (type) sp.set("type", type);
+    if (appFilter) sp.set("app", appFilter);
     if (sort !== "newest") sp.set("sort", sort);
     for (const [k, v] of Object.entries(params)) {
       if (v) sp.set(k, v);
@@ -163,7 +168,7 @@ export default async function AdminDashboard({
 
       <Card className="mb-4">
         <CardContent className="pt-4">
-          <form method="get" action="/admin" className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto]">
+          <form method="get" action="/admin" className={apps.length > 0 ? "grid gap-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_auto]" : "grid gap-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto]"}>
             <div className="flex flex-col gap-1">
               <Label htmlFor="q">Search</Label>
               <Input
@@ -212,6 +217,19 @@ export default async function AdminDashboard({
                 <option value="oldest">Oldest</option>
               </Select>
             </div>
+            {apps.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="app">App</Label>
+                <Select id="app" name="app" defaultValue={appFilter}>
+                  <option value="">All</option>
+                  {apps.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
             <div className="flex items-end">
               <Button type="submit">Filter</Button>
             </div>
@@ -241,6 +259,7 @@ export default async function AdminDashboard({
                       <p className="truncate font-medium">{t.title}</p>
                       <p className="mt-0.5 text-xs text-slate-500">
                         {t.email ?? "No email"} · {formatDate(t.created_at)}
+                        {t.app ? ` · ${t.app}` : ""}
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-2">

@@ -25,6 +25,9 @@ export const createBugSchema = z.object({
     .optional()
     .transform((v) => (v === "" ? undefined : v))
     .pipe(z.string().email("Invalid email address.").optional()),
+  // Raw application value; membership in the configured list is enforced
+  // in the route (the list comes from env, so the schema stays static).
+  app: z.string().trim().max(100).optional(),
   // May be empty when no site key is configured (dev bypass) or when the
   // widget hasn't produced a token yet. Emptiness is handled in the route:
   // verifyTurnstile() rejects it unless the dev bypass applies.

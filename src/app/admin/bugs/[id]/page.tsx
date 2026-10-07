@@ -101,6 +101,7 @@ export default async function TicketDetailPage({
             <p className="whitespace-pre-wrap text-sm">{t.description}</p>
             <dl className="mt-4 divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
               <Dl label="Reporter" value={t.email ?? "—"} />
+              {t.app && <Dl label="Application" value={t.app} />}
               <Dl label="Created" value={formatDateTime(t.created_at)} />
               <Dl label="Updated" value={formatDateTime(t.updated_at)} />
               <Dl label="Browser" value={t.browser ?? "—"} />

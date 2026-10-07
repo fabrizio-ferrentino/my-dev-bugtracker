@@ -43,6 +43,8 @@ create table if not exists public.bug_reports (
   priority bug_priority not null default 'MEDIUM',
   status bug_status not null default 'OPEN',
   email text null check (email is null or email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  -- Application chosen by the reporter from NEXT_PUBLIC_APPS (null = n/a).
+  app text null,
 
   browser text null,
   os text null,
@@ -62,6 +64,7 @@ create index if not exists bug_reports_status_idx on public.bug_reports (status)
 create index if not exists bug_reports_priority_idx on public.bug_reports (priority);
 create index if not exists bug_reports_created_idx on public.bug_reports (created_at desc);
 create index if not exists bug_reports_ticket_idx on public.bug_reports (ticket_number);
+create index if not exists bug_reports_app_idx on public.bug_reports (app);
 
 -- --- Per-year ticket counter ----------------------------------
 create table if not exists public.ticket_counters (

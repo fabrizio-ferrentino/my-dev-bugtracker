@@ -6,6 +6,7 @@ import {
   checkRateLimit,
 } from "@/lib/rate-limit";
 import { createBugSchema, validateScreenshot } from "@/lib/validation";
+import { getApps } from "@/lib/constants";
 import { newBugId, newPublicAccessToken } from "@/lib/ticket";
 import { sendNewTicketEmail } from "@/lib/resend";
 import { getClientIp } from "@/lib/utils";
@@ -59,6 +60,7 @@ export async function POST(req: Request) {
     type: form.get("type") ?? undefined,
     priority: form.get("priority") ?? undefined,
     email: form.get("email") ?? undefined,
+    app: form.get("app") ?? undefined,
     turnstileToken: form.get("turnstileToken"),
     browser: form.get("browser") || undefined,
     os: form.get("os") || undefined,
@@ -81,6 +83,19 @@ export async function POST(req: Request) {
     );
   }
   const input = parsed.data;
+
+  // Application must be one of the configured values (when configured).
+  const apps = getApps();
+  if (apps.length > 0 && (!input.app || !apps.includes(input.app))) {
+    return NextResponse.json(
+      {
+        error: "Please check the highlighted fields.",
+        fields: { app: "Please select an application." },
+      },
+      { status: 400 },
+    );
+  }
+  const appValue = apps.length > 0 ? input.app! : null;
 
   // Validate optional screenshot early (before spending Turnstile/DB calls).
   const screenshot = form.get("screenshot");
@@ -147,6 +162,7 @@ export async function POST(req: Request) {
         priority: input.priority,
         status: "OPEN",
         email: input.email ?? null,
+        app: appValue,
         browser: input.browser || null,
         os: input.os || null,
         viewport: input.viewport || null,
@@ -194,6 +210,7 @@ export async function POST(req: Request) {
     priority: input.priority,
     status: "OPEN",
     email: input.email ?? null,
+    app: appValue,
     browser: input.browser || null,
     os: input.os || null,
     viewport: input.viewport || null,

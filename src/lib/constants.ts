@@ -56,3 +56,16 @@ export const siteTagline =
 export const appUrl = (
   process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000"
 ).replace(/\/$/, "");
+
+/**
+ * Optional list of applications the reporter can pick from, configured via
+ * NEXT_PUBLIC_APPS="Website,Mobile App,API". Empty = field hidden everywhere.
+ */
+export function getApps(): string[] {
+  const raw = process.env.NEXT_PUBLIC_APPS ?? "";
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .slice(0, 50);
+}
