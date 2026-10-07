@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { NavigatingLink } from "@/components/navigating-link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,13 +71,14 @@ export default async function TicketDetailPage({
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8">
       <header className="mb-6 flex items-center justify-between gap-4">
-        <Link
+        <NavigatingLink
           href="/admin"
+          overlayText="Loading dashboard…"
           className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
         >
           <ArrowLeft aria-hidden className="size-4" />
           Back to dashboard
-        </Link>
+        </NavigatingLink>
         <LogoutButton />
       </header>
 

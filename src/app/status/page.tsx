@@ -1,9 +1,9 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Loader2, Search } from "lucide-react";
+import { NavigatingLink } from "@/components/navigating-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,13 +76,14 @@ function StatusContent() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-4 py-10">
-      <Link
+      <NavigatingLink
         href="/"
+        overlayText="Loading…"
         className="mb-4 inline-flex items-center gap-1 self-start text-sm text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
       >
         <ArrowLeft aria-hidden className="size-4" />
         Back to home
-      </Link>
+      </NavigatingLink>
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Check report status</CardTitle>

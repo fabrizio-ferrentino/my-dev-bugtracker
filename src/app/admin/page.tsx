@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   AlertTriangle,
@@ -14,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/admin/logout-button";
+import { NavigatingLink } from "@/components/navigating-link";
 import {
   PriorityBadge,
   StatusBadge,
@@ -229,8 +229,9 @@ export default async function AdminDashboard({
             <ul className="divide-y divide-slate-200 dark:divide-slate-800">
               {list.map((t) => (
                 <li key={t.id}>
-                  <Link
+                  <NavigatingLink
                     href={`/admin/bugs/${t.id}`}
+                    overlayText="Opening ticket…"
                     className="flex flex-col gap-2 p-4 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between dark:hover:bg-slate-900"
                   >
                     <div className="min-w-0">
@@ -247,7 +248,7 @@ export default async function AdminDashboard({
                       <PriorityBadge priority={t.priority} />
                       <StatusBadge status={t.status} />
                     </div>
-                  </Link>
+                  </NavigatingLink>
                 </li>
               ))}
             </ul>
@@ -259,24 +260,24 @@ export default async function AdminDashboard({
         <p className="text-sm text-slate-500">Page {page}</p>
         <div className="flex gap-2">
           {page > 1 ? (
-            <Link
+            <NavigatingLink
               href={hrefWith({ page: String(page - 1) })}
               className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
             >
               ← Previous
-            </Link>
+            </NavigatingLink>
           ) : (
             <span className="cursor-not-allowed rounded-md border border-slate-200 px-3 py-1.5 text-sm opacity-40 dark:border-slate-800">
               ← Previous
             </span>
           )}
           {list.length === PAGE_SIZE ? (
-            <Link
+            <NavigatingLink
               href={hrefWith({ page: String(page + 1) })}
               className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
             >
               Next →
-            </Link>
+            </NavigatingLink>
           ) : (
             <span className="cursor-not-allowed rounded-md border border-slate-200 px-3 py-1.5 text-sm opacity-40 dark:border-slate-800">
               Next →
