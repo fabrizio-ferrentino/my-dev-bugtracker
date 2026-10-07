@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { createAdminSupabase } from "@/lib/supabase/admin";
 import { adminUpdateSchema } from "@/lib/validation";
 
 async function requireAdmin() {
@@ -136,4 +137,56 @@ export async function getScreenshotUrl(
   } catch {
     return { url: null };
   }
+}
+
+/** Permanently delete a ticket, its screenshot and its history. */
+export async function deleteTicket(
+  id: string,
+): Promise<UpdateTicketResult> {
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch {
+    return { ok: false, error: "Not authenticated." };
+  }
+  const { supabase } = ctx;
+
+  const { data: current, error: fetchError } = await supabase
+    .from("bug_reports")
+    .select("id,screenshot_path")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !current) {
+    return { ok: false, error: "Ticket not found." };
+  }
+
+  // Remove the screenshot via service-role (no authenticated delete policy).
+  if (current.screenshot_path) {
+    try {
+      const admin = createAdminSupabase();
+      const { error: rmError } = await admin.storage
+        .from("screenshots")
+        .remove([current.screenshot_path]);
+      if (rmError) {
+        console.error("[admin] screenshot delete failed:", rmError.message);
+      }
+    } catch (err) {
+      console.error("[admin] screenshot delete failed:", err);
+    }
+  }
+
+  // bug_events rows are removed automatically (ON DELETE CASCADE).
+  const { error: deleteError } = await supabase
+    .from("bug_reports")
+    .delete()
+    .eq("id", id);
+
+  if (deleteError) {
+    console.error("[admin] delete failed:", deleteError.message);
+    return { ok: false, error: "Could not delete the ticket. Please try again." };
+  }
+
+  revalidatePath("/admin");
+  return { ok: true };
 }

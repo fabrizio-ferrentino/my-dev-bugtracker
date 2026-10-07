@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogoutButton } from "@/components/admin/logout-button";
+import { DeleteTicketButton } from "@/components/admin/delete-ticket-button";
 import { TicketEditor } from "@/components/admin/ticket-editor";
 import {
   PriorityBadge,
@@ -70,7 +71,7 @@ export default async function TicketDetailPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8">
-      <header className="mb-6 flex items-center justify-between gap-4">
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <NavigatingLink
           href="/admin"
           overlayText="Loading dashboard…"
@@ -79,7 +80,10 @@ export default async function TicketDetailPage({
           <ArrowLeft aria-hidden className="size-4" />
           Back to dashboard
         </NavigatingLink>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <DeleteTicketButton id={t.id} ticketNumber={t.ticket_number} />
+          <LogoutButton />
+        </div>
       </header>
 
       <p className="font-mono text-sm font-bold text-slate-500">
