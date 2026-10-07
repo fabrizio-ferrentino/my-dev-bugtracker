@@ -6,9 +6,11 @@ import {
   checkRateLimit,
 } from "@/lib/rate-limit";
 import { createBugSchema, validateScreenshot } from "@/lib/validation";
-import { getApps } from "@/lib/constants";
 import { newBugId, newPublicAccessToken } from "@/lib/ticket";
 import { sendNewTicketEmail } from "@/lib/resend";
+import { getApps } from "@/lib/constants";
+import { dictionaries } from "@/lib/i18n/dictionaries";
+import { getLang } from "@/lib/i18n/server";
 import { getClientIp } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -21,7 +23,13 @@ function extFor(mime: string): string {
   return "jpg";
 }
 
+function emailDict() {
+  return dictionaries[process.env.EMAIL_LANG === "en" ? "en" : "it"];
+}
+
 export async function POST(req: Request) {
+  const lang = getLang();
+  const t = dictionaries[lang];
   const ip = getClientIp(req.headers);
 
   // 1. Rate limit (per IP, server-side).
@@ -32,10 +40,7 @@ export async function POST(req: Request) {
   );
   if (!rl.allowed) {
     return NextResponse.json(
-      {
-        error:
-          "Too many reports from this device. Please wait a while and try again.",
-      },
+      { error: t.api.tooManyBugs },
       {
         status: 429,
         headers: { "Retry-After": String(rl.retryAfterSeconds) },
@@ -48,10 +53,7 @@ export async function POST(req: Request) {
   try {
     form = await req.formData();
   } catch {
-    return NextResponse.json(
-      { error: "Invalid request. Please try again." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: t.api.invalidRequest }, { status: 400 });
   }
 
   const raw = {
@@ -70,7 +72,7 @@ export async function POST(req: Request) {
     sourceUrl: form.get("sourceUrl") || undefined,
   };
 
-  const parsed = createBugSchema.safeParse(raw);
+  const parsed = createBugSchema(lang).safeParse(raw);
   if (!parsed.success) {
     const fields: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
@@ -78,7 +80,7 @@ export async function POST(req: Request) {
       if (!(key in fields)) fields[key] = issue.message;
     }
     return NextResponse.json(
-      { error: "Please check the highlighted fields.", fields },
+      { error: t.api.checkFields, fields },
       { status: 400 },
     );
   }
@@ -89,8 +91,8 @@ export async function POST(req: Request) {
   if (apps.length > 0 && (!input.app || !apps.includes(input.app))) {
     return NextResponse.json(
       {
-        error: "Please check the highlighted fields.",
-        fields: { app: "Please select an application." },
+        error: t.api.checkFields,
+        fields: { app: t.validation.appRequired },
       },
       { status: 400 },
     );
@@ -102,7 +104,7 @@ export async function POST(req: Request) {
   const file: File | null =
     screenshot instanceof File && screenshot.size > 0 ? screenshot : null;
   if (file) {
-    const fileError = validateScreenshot(file);
+    const fileError = validateScreenshot(file, lang);
     if (fileError) {
       return NextResponse.json(
         { error: fileError, fields: { screenshot: fileError } },
@@ -114,10 +116,7 @@ export async function POST(req: Request) {
   // 3. Turnstile server-side verification. Ticket is NOT created on failure.
   const human = await verifyTurnstile(input.turnstileToken, ip);
   if (!human) {
-    return NextResponse.json(
-      { error: "Could not verify the request. Please try again." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: t.api.turnstileFail }, { status: 400 });
   }
 
   // 4. Persist via service-role (anon key has INSERT-only RLS, but the
@@ -127,10 +126,7 @@ export async function POST(req: Request) {
     supabase = createAdminSupabase();
   } catch (err) {
     console.error("[api/bugs] supabase misconfigured:", err);
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: t.api.generic }, { status: 500 });
   }
 
   const id = newBugId();
@@ -174,17 +170,11 @@ export async function POST(req: Request) {
         ticketNumber = candidate;
       } else if (error.code !== "23505") {
         console.error("[api/bugs] insert failed:", error.message);
-        return NextResponse.json(
-          { error: "Something went wrong. Please try again." },
-          { status: 500 },
-        );
+        return NextResponse.json({ error: t.api.generic }, { status: 500 });
       }
     }
     if (!ticketNumber) {
-      return NextResponse.json(
-        { error: "Something went wrong. Please try again." },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: t.api.generic }, { status: 500 });
     }
     // Ticket already inserted by the fallback loop — continue to screenshot.
     await supabase.from("bug_events").insert({
@@ -223,15 +213,9 @@ export async function POST(req: Request) {
     console.error("[api/bugs] insert failed:", insertError.message);
     // Extremely rare race on ticket_number — ask the user to retry.
     if (insertError.code === "23505") {
-      return NextResponse.json(
-        { error: "Something went wrong. Please try again." },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: t.api.generic }, { status: 500 });
     }
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: t.api.generic }, { status: 500 });
   }
 
   await supabase.from("bug_events").insert({
@@ -296,7 +280,7 @@ async function finishTicket(
       .select("*")
       .eq("id", id)
       .single();
-    if (data) await sendNewTicketEmail(data);
+    if (data) await sendNewTicketEmail(data, emailDict());
   } catch (err) {
     console.error("[api/bugs] post-create notification failed:", err);
   }

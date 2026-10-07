@@ -6,7 +6,7 @@ import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
-export function LogoutButton() {
+export function LogoutButton({ label }: { label: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +24,7 @@ export function LogoutButton() {
   return (
     <Button variant="outline" size="sm" onClick={handleLogout} disabled={loading}>
       <LogOut aria-hidden />
-      Logout
+      {label}
     </Button>
   );
 }

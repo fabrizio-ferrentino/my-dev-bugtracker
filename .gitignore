@@ -33,6 +33,7 @@ AGENTS.md
 .agents
 .config
 skills-lock.json
+.claude
 
 # vercel
 .vercel

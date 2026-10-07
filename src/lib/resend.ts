@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { appUrl, siteName } from "./constants";
+import type { Dict } from "./i18n/dictionaries";
 import type { BugReport } from "@/types/bug";
-import { PRIORITY_LABELS, TYPE_LABELS } from "./constants";
 
 function getResend() {
   const key = process.env.RESEND_API_KEY;
@@ -13,7 +13,10 @@ function getResend() {
  * Notify the admin about a new ticket (spec §20). Best-effort:
  * failures are logged but never fail ticket creation.
  */
-export async function sendNewTicketEmail(ticket: BugReport): Promise<void> {
+export async function sendNewTicketEmail(
+  ticket: BugReport,
+  t: Dict,
+): Promise<void> {
   const adminEmail = process.env.ADMIN_EMAIL?.trim();
   const from = process.env.RESEND_FROM_EMAIL?.trim();
   const resend = getResend();
@@ -30,28 +33,29 @@ export async function sendNewTicketEmail(ticket: BugReport): Promise<void> {
     ticket.description.length > 1200
       ? ticket.description.slice(0, 1200) + "…"
       : ticket.description;
+  const e = t.email;
 
   try {
     await resend.emails.send({
       from,
       to: adminEmail,
-      subject: `New report ${ticket.ticket_number} — ${ticket.title}`,
+      subject: `${e.subjectPrefix} ${ticket.ticket_number} — ${ticket.title}`,
       text: [
-        `New report ${ticket.ticket_number}`,
+        `${e.subjectPrefix} ${ticket.ticket_number}`,
         ``,
-        `Title: ${ticket.title}`,
-        `Priority: ${PRIORITY_LABELS[ticket.priority]}`,
-        `Type: ${TYPE_LABELS[ticket.type]}`,
-        ...(ticket.app ? [`Application: ${ticket.app}`] : []),
-        ticket.email ? `Reporter: ${ticket.email}` : `Reporter: (no email)`,
+        `${e.title} ${ticket.title}`,
+        `${e.priority} ${t.priorities[ticket.priority]}`,
+        `${e.type} ${t.types[ticket.type]}`,
+        ...(ticket.app ? [`${e.application} ${ticket.app}`] : []),
+        `${e.reporter} ${ticket.email ?? e.noReporter}`,
         ``,
-        `Description:`,
+        `${e.description}`,
         description,
         ``,
-        `Open ticket: ${adminLink}`,
+        `${e.openTicket} ${adminLink}`,
         ``,
         `--`,
-        `${siteName} notifications`,
+        `${siteName} ${e.footer}`,
       ].join("\n"),
     });
   } catch (err) {

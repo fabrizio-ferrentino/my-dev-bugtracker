@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { adminUpdateSchema } from "@/lib/validation";
+import { dictionaries } from "@/lib/i18n/dictionaries";
+import { getLang } from "@/lib/i18n/server";
 
 async function requireAdmin() {
   const supabase = createServerSupabase();
@@ -29,9 +31,10 @@ export async function updateTicket(
   id: string,
   input: unknown,
 ): Promise<UpdateTicketResult> {
+  const t = dictionaries[getLang()];
   const parsed = adminUpdateSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid values provided." };
+    return { ok: false, error: t.detail.invalid };
   }
   const next = parsed.data;
 
@@ -39,7 +42,7 @@ export async function updateTicket(
   try {
     ctx = await requireAdmin();
   } catch {
-    return { ok: false, error: "Not authenticated." };
+    return { ok: false, error: t.api.generic };
   }
   const { supabase, user } = ctx;
 
@@ -50,7 +53,7 @@ export async function updateTicket(
     .single();
 
   if (fetchError || !current) {
-    return { ok: false, error: "Ticket not found." };
+    return { ok: false, error: t.api.notFound };
   }
 
   const { error: updateError } = await supabase
@@ -65,7 +68,7 @@ export async function updateTicket(
 
   if (updateError) {
     console.error("[admin] update failed:", updateError.message);
-    return { ok: false, error: "Could not save changes. Please try again." };
+    return { ok: false, error: t.detail.saveError };
   }
 
   const events: {
@@ -143,11 +146,12 @@ export async function getScreenshotUrl(
 export async function deleteTicket(
   id: string,
 ): Promise<UpdateTicketResult> {
+  const t = dictionaries[getLang()];
   let ctx;
   try {
     ctx = await requireAdmin();
   } catch {
-    return { ok: false, error: "Not authenticated." };
+    return { ok: false, error: t.api.generic };
   }
   const { supabase } = ctx;
 
@@ -158,7 +162,7 @@ export async function deleteTicket(
     .single();
 
   if (fetchError || !current) {
-    return { ok: false, error: "Ticket not found." };
+    return { ok: false, error: t.api.notFound };
   }
 
   // Remove the screenshot via service-role (no authenticated delete policy).
@@ -184,7 +188,7 @@ export async function deleteTicket(
 
   if (deleteError) {
     console.error("[admin] delete failed:", deleteError.message);
-    return { ok: false, error: "Could not delete the ticket. Please try again." };
+    return { ok: false, error: t.detail.saveError };
   }
 
   revalidatePath("/admin");

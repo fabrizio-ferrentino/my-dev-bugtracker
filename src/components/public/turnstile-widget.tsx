@@ -15,6 +15,7 @@ declare global {
 
 interface Props {
   onToken: (token: string | null) => void;
+  loadFailedMessage: string;
 }
 
 /**
@@ -22,7 +23,7 @@ interface Props {
  * is configured; otherwise calls onToken(null) so the server can decide
  * (dev bypass, see lib/turnstile.ts).
  */
-export function TurnstileWidget({ onToken }: Props) {
+export function TurnstileWidget({ onToken, loadFailedMessage }: Props) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
@@ -86,7 +87,7 @@ export function TurnstileWidget({ onToken }: Props) {
         <div ref={containerRef} />
         {failed && (
           <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-            Could not load the verification widget. Please reload the page.
+            {loadFailedMessage}
           </p>
         )}
       </div>

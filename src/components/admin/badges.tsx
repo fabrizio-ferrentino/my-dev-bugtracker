@@ -1,32 +1,26 @@
 import { Badge } from "@/components/ui/badge";
-import {
-  PRIORITY_LABELS,
-  PRIORITY_STYLES,
-  STATUS_LABELS,
-  STATUS_STYLES,
-  TYPE_LABELS,
-} from "@/lib/constants";
+import { PRIORITY_STYLES, STATUS_STYLES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { BugPriority, BugStatus, BugType } from "@/types/bug";
 
-export function StatusBadge({ status }: { status: BugStatus }) {
-  return (
-    <Badge className={cn(STATUS_STYLES[status])}>{STATUS_LABELS[status]}</Badge>
-  );
+export function StatusBadge({ status, label }: { status: BugStatus; label: string }) {
+  return <Badge className={cn(STATUS_STYLES[status])}>{label}</Badge>;
 }
 
-export function PriorityBadge({ priority }: { priority: BugPriority }) {
-  return (
-    <Badge className={cn(PRIORITY_STYLES[priority])}>
-      {PRIORITY_LABELS[priority]}
-    </Badge>
-  );
+export function PriorityBadge({
+  priority,
+  label,
+}: {
+  priority: BugPriority;
+  label: string;
+}) {
+  return <Badge className={cn(PRIORITY_STYLES[priority])}>{label}</Badge>;
 }
 
-export function TypeBadge({ type }: { type: BugType }) {
+export function TypeBadge({ type, label }: { type: BugType; label: string }) {
   return (
-    <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-      {TYPE_LABELS[type]}
+    <Badge className="bg-zinc-100 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-400/20">
+      {label}
     </Badge>
   );
 }

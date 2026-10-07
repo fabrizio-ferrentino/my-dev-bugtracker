@@ -5,13 +5,16 @@ import { useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteTicket } from "@/app/admin/actions";
+import type { Dict } from "@/lib/i18n/dictionaries";
 
 export function DeleteTicketButton({
   id,
   ticketNumber,
+  t,
 }: {
   id: string;
   ticketNumber: string;
+  t: Dict["detail"];
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -26,7 +29,7 @@ export function DeleteTicketButton({
       router.push("/admin");
       router.refresh();
     } else {
-      setError(result.error ?? "Could not delete the ticket.");
+      setError(result.error ?? t.saveError);
       setDeleting(false);
       setConfirming(false);
     }
@@ -42,7 +45,7 @@ export function DeleteTicketButton({
         onClick={() => setConfirming(true)}
       >
         <Trash2 aria-hidden />
-        Delete
+        {t.delete}
       </Button>
     );
   }
@@ -50,10 +53,12 @@ export function DeleteTicketButton({
   return (
     <div
       role="alertdialog"
-      aria-label={`Delete ${ticketNumber}?`}
-      className="flex flex-wrap items-center gap-2 rounded-md border border-red-300 bg-red-50 p-2 text-sm dark:border-red-900 dark:bg-red-950"
+      aria-label={`${t.delete} ${ticketNumber}?`}
+      className="flex flex-wrap items-center gap-2 rounded-lg border border-red-300 bg-red-50 p-2 text-sm ring-1 ring-inset ring-red-600/20 dark:border-red-900 dark:bg-red-950"
     >
-      <span className="font-medium">Delete {ticketNumber} permanently?</span>
+      <span className="font-medium">
+        {t.delete} {ticketNumber} {t.deleteConfirm}
+      </span>
       <Button
         variant="destructive"
         size="sm"
@@ -66,7 +71,7 @@ export function DeleteTicketButton({
         ) : (
           <Trash2 aria-hidden />
         )}
-        Yes, delete
+        {t.deleteYes}
       </Button>
       <Button
         variant="ghost"
@@ -78,7 +83,7 @@ export function DeleteTicketButton({
           setError(null);
         }}
       >
-        Cancel
+        {t.cancel}
       </Button>
       {error && (
         <p role="alert" className="w-full text-red-600 dark:text-red-400">

@@ -3,6 +3,7 @@
 A minimal, self-hostable **bug tracker / helpdesk** template. Anyone can submit a bug report **without an account**; you manage everything from a private admin dashboard.
 
 - Public report form (`/`) with screenshot upload + Cloudflare Turnstile
+- Bilingual UI (Italian/English) with a language switcher — no extra dependencies
 - Confirmation page with a personal status link (`/success`, `/status`)
 - Private admin dashboard (`/admin`) — stats, search, filters, ticket detail, internal notes, history
 - Email notification to the admin on every new ticket (Resend)
@@ -81,6 +82,15 @@ stored on the ticket, shown in the dashboard (with filter), the ticket detail,
 the reporter status page and the admin email. Leave it empty to hide the
 field entirely. Changing the variable requires restarting `npm run dev`
 (public env vars are inlined at build time).
+
+### Languages
+
+The UI is bilingual (Italian default, English) with a switcher in every
+header. The language is stored in a `lang` cookie and rendered server-side,
+so there is no content flicker. All strings live in
+`src/lib/i18n/dictionaries.ts` (TypeScript enforces that both languages
+define the same keys). API error messages follow the same cookie; admin
+notification emails follow `EMAIL_LANG` (`it` default, `en` optional).
 
 ## 5. Deploy
 

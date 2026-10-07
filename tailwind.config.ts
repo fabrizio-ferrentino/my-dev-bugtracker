@@ -4,7 +4,11 @@ const config: Config = {
   darkMode: "class",
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+      },
+    },
   },
   plugins: [],
 };

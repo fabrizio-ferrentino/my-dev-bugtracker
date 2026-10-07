@@ -5,6 +5,8 @@ import {
   checkRateLimit,
 } from "@/lib/rate-limit";
 import { ticketNumberSchema } from "@/lib/validation";
+import { dictionaries } from "@/lib/i18n/dictionaries";
+import { getLang } from "@/lib/i18n/server";
 import { getClientIp } from "@/lib/utils";
 import type { PublicTicketInfo } from "@/types/bug";
 
@@ -18,6 +20,8 @@ export const runtime = "nodejs";
  * NEVER returns admin_notes, email, user_agent or technical details.
  */
 export async function GET(req: Request) {
+  const lang = getLang();
+  const t = dictionaries[lang];
   const ip = getClientIp(req.headers);
   const rl = checkRateLimit(
     `status:lookup:${ip}`,
@@ -26,7 +30,7 @@ export async function GET(req: Request) {
   );
   if (!rl.allowed) {
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment and try again." },
+      { error: t.api.tooManyStatus },
       {
         status: 429,
         headers: { "Retry-After": String(rl.retryAfterSeconds) },
@@ -39,10 +43,7 @@ export async function GET(req: Request) {
   const ticket = searchParams.get("ticket")?.trim().toUpperCase() || "";
 
   if (!token && !ticket) {
-    return NextResponse.json(
-      { error: "Provide a ticket number or an access link." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: t.api.provideTicket }, { status: 400 });
   }
 
   let supabase;
@@ -50,15 +51,12 @@ export async function GET(req: Request) {
     supabase = createAdminSupabase();
   } catch (err) {
     console.error("[api/status] supabase misconfigured:", err);
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: t.api.generic }, { status: 500 });
   }
 
   if (token) {
     if (!/^[a-f0-9]{64}$/.test(token)) {
-      return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
+      return NextResponse.json({ error: t.api.notFound }, { status: 404 });
     }
     const { data, error } = await supabase
       .from("bug_reports")
@@ -66,17 +64,14 @@ export async function GET(req: Request) {
       .eq("public_access_token", token)
       .single();
     if (error || !data) {
-      return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
+      return NextResponse.json({ error: t.api.notFound }, { status: 404 });
     }
     return NextResponse.json({ ticket: data as PublicTicketInfo });
   }
 
   const parsed = ticketNumberSchema.safeParse(ticket);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid ticket format. Expected e.g. BUG-2026-0001." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: t.api.badFormat }, { status: 400 });
   }
   const { data, error } = await supabase
     .from("bug_reports")
@@ -85,11 +80,11 @@ export async function GET(req: Request) {
     .single();
   if (error || !data) {
     // Same message as invalid token — do not reveal existence.
-    return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
+    return NextResponse.json({ error: t.api.notFound }, { status: 404 });
   }
   return NextResponse.json({
     ticket: data,
     limited: true,
-    hint: "Open your personal status link (received after reporting) to see full details.",
+    hint: t.api.statusHint,
   });
 }

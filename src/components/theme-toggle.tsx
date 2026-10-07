@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export function ThemeToggle() {
+export function ThemeToggle({ toLight, toDark }: { toLight: string; toDark: string }) {
   const { theme, setTheme } = useTheme();
   // Theme is unknown until client mount — render a stable placeholder
   // before that, otherwise server/client HTML differs (hydration error).
@@ -26,7 +26,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       type="button"
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={isDark ? toLight : toDark}
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
       {isDark ? <Sun aria-hidden /> : <Moon aria-hidden />}
