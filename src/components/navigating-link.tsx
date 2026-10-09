@@ -27,8 +27,12 @@ export function NavigatingLink({
         {...rest}
         aria-disabled={pending}
         onClick={(e) => {
-          setPending(true);
           onClick?.(e);
+          // Ctrl/Cmd/Shift/Alt-click or target=_blank open elsewhere: this page
+          // stays, so the overlay would never go away.
+          const elsewhere =
+            e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || rest.target === "_blank";
+          if (!e.defaultPrevented && !elsewhere) setPending(true);
         }}
       >
         {children}
