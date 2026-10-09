@@ -26,7 +26,7 @@ export default async function AdminLoginPage({
     const allowlist = process.env.ADMIN_EMAIL?.trim().toLowerCase();
     if (!allowlist || user.email?.toLowerCase() === allowlist) {
       const next = searchParams.next;
-      redirect(next && next.startsWith("/admin") ? next : "/admin");
+      redirect(next && /^\/admin(\/|\?|$)/.test(next) ? next : "/admin");
     }
   }
 

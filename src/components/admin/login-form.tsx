@@ -15,7 +15,9 @@ import type { Dict } from "@/lib/i18n/dictionaries";
 export function LoginForm({ t }: { t: Dict }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/admin";
+  // Only same-site admin paths: never redirect to an external URL after login.
+  const rawNext = searchParams.get("next") ?? "";
+  const next = /^\/admin(\/|\?|$)/.test(rawNext) ? rawNext : "/admin";
   const urlError = searchParams.get("error");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
