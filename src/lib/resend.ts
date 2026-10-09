@@ -36,7 +36,8 @@ export async function sendNewTicketEmail(
   const e = t.email;
 
   try {
-    await resend.emails.send({
+    // Resend reports API failures in `error` instead of throwing.
+    const { error } = await resend.emails.send({
       from,
       to: adminEmail,
       subject: `${e.subjectPrefix} ${ticket.ticket_number} — ${ticket.title}`,
@@ -58,6 +59,9 @@ export async function sendNewTicketEmail(
         `${siteName} ${e.footer}`,
       ].join("\n"),
     });
+    if (error) {
+      console.error("[email] failed to send new-ticket notification:", error);
+    }
   } catch (err) {
     // Never break ticket creation because of email.
     console.error("[email] failed to send new-ticket notification:", err);
