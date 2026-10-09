@@ -17,7 +17,6 @@ import type { PublicReply, PublicTicketInfo } from "@/types/bug";
 interface StatusResponse {
   ticket?: Partial<PublicTicketInfo> & {
     ticket_number: string;
-    title: string;
     status: PublicTicketInfo["status"];
     updated_at: string;
   };
@@ -167,9 +166,10 @@ export function StatusContent({ t, locale }: { t: Dict; locale: string }) {
               <p className="font-mono text-sm font-bold text-zinc-500">
                 {result.ticket.ticket_number}
               </p>
-              <p className="mt-1 text-lg font-semibold">
-                {result.ticket.title}
-              </p>
+              {/* Only present with the personal link (?token=). */}
+              {result.ticket.title && (
+                <p className="mt-1 text-lg font-semibold">{result.ticket.title}</p>
+              )}
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className="text-sm text-zinc-500">{t.statusPage.statusIs}</span>
                 <Badge className={cn(STATUS_STYLES[result.ticket.status])}>
