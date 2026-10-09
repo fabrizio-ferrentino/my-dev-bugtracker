@@ -48,13 +48,22 @@ Open http://localhost:3000.
 1. Create a free project at https://supabase.com.
 2. **SQL editor → New query** → paste the contents of `supabase/schema.sql` → run it. This creates:
    - enums (`bug_status`, `bug_priority`, `bug_type`, `bug_event_type`)
-   - tables `bug_reports`, `bug_events`, `bug_comments` (public replies), `ticket_counters`
-   - the `mint_ticket_number()` function (`BUG-YYYY-NNNN`)
-   - `updated_at` trigger, indexes, and **Row Level Security** policies (anon: insert-only; authenticated admin: full access).
+   - tables `bug_reports`, `bug_events`, `bug_comments` (public replies), `ticket_counters`, `admins`
+   - the `mint_ticket_number()` function (`BUG-YYYY-NNNN`) and the `is_admin()` helper
+   - `updated_at` trigger, indexes, and **Row Level Security** policies (anon: insert-only; admins listed in `public.admins`: full access).
 
    The script is idempotent. **Upgrading an existing install?** Run it again after pulling: it adds new tables (e.g. `bug_comments`) and enum values (`PUBLIC_REPLY_ADDED`, `PUBLIC_REPLY_DELETED`) without touching existing data.
 3. **Storage → New bucket** → name `screenshots` → **Private** (admin views images via signed URLs; nothing is public).
 4. **Authentication → Users → Add user** → create your admin with email + password (this is the login for `/admin/login`). Use the same email as `ADMIN_EMAIL` to enable the optional allowlist check.
+   Then grant database access in the **SQL editor** (being signed in is not enough — RLS only trusts users listed in `public.admins`):
+
+   ```sql
+   insert into public.admins (user_id)
+   select id from auth.users where email = 'you@example.com'
+   on conflict do nothing;
+   ```
+
+   Also turn off **Authentication → Sign In / Providers → Allow new users to sign up**: the admin is the only account this app needs.
 5. Copy **Project URL** and **anon public key** (Settings → API) into `.env.local`. Copy the **service_role secret key** into `SUPABASE_SERVICE_ROLE_KEY` (server only, never expose it).
 
 ## 2. Resend setup (email notifications)

@@ -170,20 +170,47 @@ create policy "anon_insert_reports"
   to anon
   with check (true);
 
--- Authenticated (admin user created in Supabase Auth): full access.
+-- --- Admins -------------------------------------------------------
+-- Being signed in is NOT enough: anyone can sign up through the public
+-- anon key if sign-ups are enabled. Only users listed here get access.
+-- After running this script, add yourself (SQL editor):
+--   insert into public.admins (user_id)
+--   select id from auth.users where email = 'you@example.com'
+--   on conflict do nothing;
+create table if not exists public.admins (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+-- RLS on with no policies: only the SQL editor / service role can edit it.
+alter table public.admins enable row level security;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.admins where user_id = auth.uid());
+$$;
+
+revoke all on function public.is_admin() from public, anon;
+grant execute on function public.is_admin() to authenticated;
+
+-- Admins (listed in public.admins): full access.
 drop policy if exists "auth_all_reports" on public.bug_reports;
 create policy "auth_all_reports"
   on public.bug_reports for all
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_admin())
+  with check (public.is_admin());
 
 drop policy if exists "auth_all_events" on public.bug_events;
 create policy "auth_all_events"
   on public.bug_events for all
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- Public replies: admins manage them; the public reads them only through
 -- the service-role status API (anon has no direct access).
@@ -191,8 +218,8 @@ drop policy if exists "auth_all_comments" on public.bug_comments;
 create policy "auth_all_comments"
   on public.bug_comments for all
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- Service-role bypasses RLS automatically; the mint function runs as
 -- SECURITY DEFINER so ticket creation works for anon inserts via API.
@@ -215,7 +242,7 @@ drop policy if exists "auth_read_screenshots" on storage.objects;
 create policy "auth_read_screenshots"
   on storage.objects for select
   to authenticated
-  using (bucket_id = 'screenshots');
+  using (bucket_id = 'screenshots' and public.is_admin());
 
 -- If you prefer managing storage policies in SQL:
 -- insert into storage.buckets (id, name, public)
