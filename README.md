@@ -50,7 +50,7 @@ Open http://localhost:3000.
    - enums (`bug_status`, `bug_priority`, `bug_type`, `bug_event_type`)
    - tables `bug_reports`, `bug_events`, `bug_comments` (public replies), `ticket_counters`, `admins`
    - the `mint_ticket_number()` function (`BUG-YYYY-NNNN`) and the `is_admin()` helper
-   - `updated_at` trigger, indexes, and **Row Level Security** policies (anon: insert-only; admins listed in `public.admins`: full access).
+   - `updated_at` trigger, indexes, and **Row Level Security** policies (anon: no direct access, tickets are created only through the Turnstile-protected `/api/bugs`; admins listed in `public.admins`: full access).
 
    The script is idempotent. **Upgrading an existing install?** Run it again after pulling: it adds new tables (e.g. `bug_comments`) and enum values (`PUBLIC_REPLY_ADDED`, `PUBLIC_REPLY_DELETED`) without touching existing data.
 3. **Storage → New bucket** → name `screenshots` → **Private** (admin views images via signed URLs; nothing is public).
@@ -154,7 +154,7 @@ going live.
 | `POST /api/bugs` | public | Rate-limited (5/hour/IP), Turnstile-verified, Zod-validated ticket creation. |
 | `GET /api/status` | public | Rate-limited (30/min/IP) public-safe lookup. |
 
-Security notes: secrets live server-side only; RLS denies anon reads/updates; uploads validated (PNG/JPG/WEBP ≤ 5 MB) and stored in a private bucket; security headers in `next.config.js`; admin pages send `noindex, nofollow`.
+Security notes: secrets live server-side only; RLS denies all direct anon access (reporters stay anonymous but go through `/api/bugs`) and limits authenticated access to listed admins; uploads validated (PNG/JPG/WEBP ≤ 5 MB) and stored in a private bucket; security headers in `next.config.js`; admin pages send `noindex, nofollow`.
 
 ## Project structure
 

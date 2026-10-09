@@ -161,14 +161,12 @@ alter table public.bug_events enable row level security;
 alter table public.bug_comments enable row level security;
 alter table public.ticket_counters enable row level security;
 
--- Anonymous (public reporters):
---   INSERT bug_reports -> ALLOWED (create only)
---   SELECT / UPDATE / DELETE -> DENIED
+-- Anonymous (public reporters): NO direct table access at all.
+-- Reporters stay anonymous (no login) but create tickets only through
+-- POST /api/bugs, which verifies Turnstile, rate-limits and validates,
+-- then inserts with the service role. A direct anon INSERT policy would
+-- let anyone with the public anon key skip all of that, so it is dropped.
 drop policy if exists "anon_insert_reports" on public.bug_reports;
-create policy "anon_insert_reports"
-  on public.bug_reports for insert
-  to anon
-  with check (true);
 
 -- --- Admins -------------------------------------------------------
 -- Being signed in is NOT enough: anyone can sign up through the public
@@ -221,11 +219,8 @@ create policy "auth_all_comments"
   using (public.is_admin())
   with check (public.is_admin());
 
--- Service-role bypasses RLS automatically; the mint function runs as
--- SECURITY DEFINER so ticket creation works for anon inserts via API.
--- NOTE: the public API uses the service-role key server-side, so none of
--- the anon policies above are strictly required for the app to function —
--- they exist to make direct anon access predictable and safe.
+-- Service-role bypasses RLS automatically: the public API routes
+-- (/api/bugs, /api/status) use it server-side, so anon needs no policies.
 
 -- --- Storage ----------------------------------------------------
 -- Create a PRIVATE bucket named "screenshots" (Dashboard:
