@@ -61,19 +61,23 @@ export default async function AdminDashboard({
   const allowlist = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   if (allowlist && user.email?.toLowerCase() !== allowlist) redirect("/admin/login");
 
-  // Stats (single source: database).
-  const { data: all } = await supabase
-    .from("bug_reports")
-    .select("status,priority");
-  const rows = (all ?? []) as { status: string; priority: string }[];
+  // Stats (single source: database). Count queries instead of fetching rows:
+  // PostgREST caps responses at 1000 rows, which would skew the numbers.
+  const countRows = () =>
+    supabase.from("bug_reports").select("id", { count: "exact", head: true });
+  const [open, inProgress, resolved, closed, critical] = await Promise.all([
+    countRows().eq("status", "OPEN"),
+    countRows().eq("status", "IN_PROGRESS"),
+    countRows().eq("status", "RESOLVED"),
+    countRows().eq("status", "CLOSED"),
+    countRows().eq("priority", "CRITICAL").neq("status", "CLOSED"),
+  ]);
   const stats = {
-    open: rows.filter((r) => r.status === "OPEN").length,
-    inProgress: rows.filter((r) => r.status === "IN_PROGRESS").length,
-    resolved: rows.filter((r) => r.status === "RESOLVED").length,
-    closed: rows.filter((r) => r.status === "CLOSED").length,
-    critical: rows.filter(
-      (r) => r.priority === "CRITICAL" && r.status !== "CLOSED",
-    ).length,
+    open: open.count ?? 0,
+    inProgress: inProgress.count ?? 0,
+    resolved: resolved.count ?? 0,
+    closed: closed.count ?? 0,
+    critical: critical.count ?? 0,
   };
 
   // Filters.
