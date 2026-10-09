@@ -96,13 +96,19 @@ export default async function AdminDashboard({
   if (priority) query = query.eq("priority", priority);
   if (type) query = query.eq("type", type);
   if (appFilter) query = query.eq("app", appFilter);
-  if (q) query = query.or(`ticket_number.ilike.%${q}%,title.ilike.%${q}%`);
+  if (q) {
+    // Double-quoted so commas, dots and parentheses in the search text
+    // don't break PostgREST's or=(...) syntax; escape " and \ inside.
+    const pattern = `"%${q.replace(/["\\]/g, "\\$&")}%"`;
+    query = query.or(`ticket_number.ilike.${pattern},title.ilike.${pattern}`);
+  }
   query = query.order("created_at", {
     ascending: sort === "oldest",
   });
   query = query.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-  const { data: tickets } = await query;
+  const { data: tickets, error: listError } = await query;
+  if (listError) console.error("[admin] ticket list query failed:", listError.message);
   const list = (tickets ?? []) as Pick<
     BugReport,
     "id" | "ticket_number" | "title" | "type" | "priority" | "status" | "email" | "app" | "created_at"
