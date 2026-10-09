@@ -1,4 +1,4 @@
-# Bug Tracker
+# My Dev BugTracker
 
 A minimal, self-hostable **bug tracker / helpdesk** template. Anyone can submit a bug report **without an account**; you manage everything from a private admin dashboard.
 
