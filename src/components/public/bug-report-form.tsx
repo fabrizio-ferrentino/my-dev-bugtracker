@@ -24,6 +24,7 @@ interface SuccessPayload {
 export function BugReportForm({ t }: { t: Dict }) {
   const router = useRouter();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -85,6 +86,7 @@ export function BugReportForm({ t }: { t: Dict }) {
         const err = json as { error: string; fields?: Record<string, string> };
         setError(err.error || t.api.generic);
         if (err.fields) setFieldErrors(err.fields);
+        setTurnstileReset((n) => n + 1);
         return;
       }
 
@@ -94,6 +96,7 @@ export function BugReportForm({ t }: { t: Dict }) {
       );
     } catch {
       setError(t.api.generic);
+      setTurnstileReset((n) => n + 1);
     } finally {
       setSubmitting(false);
     }
@@ -249,7 +252,11 @@ export function BugReportForm({ t }: { t: Dict }) {
             )}
           </div>
 
-          <TurnstileWidget onToken={setTurnstileToken} loadFailedMessage={t.turnstile.loadFailed} />
+          <TurnstileWidget
+            onToken={setTurnstileToken}
+            loadFailedMessage={t.turnstile.loadFailed}
+            resetSignal={turnstileReset}
+          />
 
           {error && (
             <p role="alert" className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-300">

@@ -16,6 +16,8 @@ declare global {
 interface Props {
   onToken: (token: string | null) => void;
   loadFailedMessage: string;
+  /** Bump to get a fresh token: Turnstile tokens are single-use. */
+  resetSignal?: number;
 }
 
 /**
@@ -23,7 +25,7 @@ interface Props {
  * is configured; otherwise calls onToken(null) so the server can decide
  * (dev bypass, see lib/turnstile.ts).
  */
-export function TurnstileWidget({ onToken, loadFailedMessage }: Props) {
+export function TurnstileWidget({ onToken, loadFailedMessage, resetSignal = 0 }: Props) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
@@ -74,6 +76,14 @@ export function TurnstileWidget({ onToken, loadFailedMessage }: Props) {
       clearTimeout(timeout);
     };
   }, [siteKey, renderWidget, onToken]);
+
+  // After a failed submit the server may already have spent the token:
+  // reset the widget so the next attempt gets a new one.
+  useEffect(() => {
+    if (resetSignal === 0 || !widgetId.current || !window.turnstile) return;
+    cbRef.current(null);
+    window.turnstile.reset(widgetId.current);
+  }, [resetSignal]);
 
   if (!siteKey) return null;
 
