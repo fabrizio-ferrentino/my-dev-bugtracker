@@ -146,7 +146,7 @@ going live.
 |---|---|---|
 | `/` | public | Report form (no login). Auto-collects browser/OS/viewport/language. |
 | `/success` | public | Confirmation with ticket number + personal status link. |
-| `/status` | public | Status lookup. Ticket number alone shows only status and last update (numbers are sequential, so no title); the personal link (`?token=…`) shows full public-safe info and public replies. Internal notes are never exposed. |
+| `/status` | public | Status lookup. Ticket number alone shows minimal info (title, status, last update); the personal link (`?token=…`) shows full public-safe info and public replies. Internal notes are never exposed. |
 | `/privacy` | public | Privacy policy (placeholder to fill in). |
 | `/admin/login` | you | Supabase Auth email/password login. |
 | `/admin` | you | Stats, search, filters (status/priority/type/app), sorting, pagination. |

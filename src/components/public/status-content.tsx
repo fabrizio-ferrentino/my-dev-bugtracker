@@ -166,7 +166,6 @@ export function StatusContent({ t, locale }: { t: Dict; locale: string }) {
               <p className="font-mono text-sm font-bold text-zinc-500">
                 {result.ticket.ticket_number}
               </p>
-              {/* Only present with the personal link (?token=). */}
               {result.ticket.title && (
                 <p className="mt-1 text-lg font-semibold">{result.ticket.title}</p>
               )}

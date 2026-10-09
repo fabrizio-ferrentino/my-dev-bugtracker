@@ -15,8 +15,8 @@ export const runtime = "nodejs";
 /**
  * Public ticket-status lookup (spec §18–19).
  * - ?token=<public_access_token> → fuller public-safe info + public replies.
- * - ?ticket=BUG-XXXX-XXXX → minimal info only (number, status, updated_at)
- *   so sequential numbers cannot leak anything sensitive, not even titles.
+ * - ?ticket=BUG-XXXX-XXXX → minimal info only (number, title, status,
+ *   updated_at). Numbers are random, so they can't be enumerated.
  * NEVER returns admin_notes, email, user_agent or technical details.
  */
 export async function GET(req: Request) {
@@ -88,10 +88,7 @@ export async function GET(req: Request) {
   }
   const { data, error } = await supabase
     .from("bug_reports")
-    // No title here: ticket numbers are sequential (BUG-YYYY-NNNN), so
-    // anything returned for a bare number can be enumerated. Only the
-    // personal link (?token=) reveals the title and details.
-    .select("ticket_number,status,updated_at")
+    .select("ticket_number,title,status,updated_at")
     .eq("ticket_number", parsed.data)
     .single();
   if (error || !data) {
