@@ -71,6 +71,13 @@ export const adminUpdateSchema = z.object({
 
 export type AdminUpdateInput = z.infer<typeof adminUpdateSchema>;
 
+/** Public reply posted by an admin — shown on the personal status page. */
+export const adminReplySchema = z.object({
+  body: z.string().trim().min(1).max(2000),
+});
+
+export type AdminReplyInput = z.infer<typeof adminReplySchema>;
+
 export const ticketNumberSchema = z
   .string()
   .trim()

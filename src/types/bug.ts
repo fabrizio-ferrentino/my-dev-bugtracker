@@ -20,6 +20,8 @@ export const BUG_EVENT_TYPES = [
   "PRIORITY_CHANGED",
   "TYPE_CHANGED",
   "NOTE_ADDED",
+  "PUBLIC_REPLY_ADDED",
+  "PUBLIC_REPLY_DELETED",
 ] as const;
 export type BugEventType = (typeof BUG_EVENT_TYPES)[number];
 
@@ -67,4 +69,21 @@ export interface BugEvent {
   new_value: string | null;
   created_at: string;
   created_by: string | null;
+}
+
+/** Admin-authored message visible via the personal status link. */
+export interface BugComment {
+  id: string;
+  bug_id: string;
+  body: string;
+  author: "ADMIN" | "REPORTER";
+  created_at: string;
+  created_by: string | null;
+}
+
+/** Public-safe subset of a comment — NEVER add internal fields here. */
+export interface PublicReply {
+  id: string;
+  body: string;
+  created_at: string;
 }

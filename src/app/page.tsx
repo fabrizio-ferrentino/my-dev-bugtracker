@@ -3,7 +3,7 @@ import { Bug } from "lucide-react";
 import { BugReportForm } from "@/components/public/bug-report-form";
 import { LangToggle } from "@/components/lang-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { siteName, siteTaglineEnv } from "@/lib/constants";
+import { privacyUrl, siteName, siteTaglineEnv } from "@/lib/constants";
 import { getLangAndDict } from "@/lib/i18n/server";
 
 export default function HomePage() {
@@ -46,6 +46,15 @@ export default function HomePage() {
         >
           {t.home.footerLink}
         </Link>
+        {" · "}
+        <a
+          href={privacyUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400"
+        >
+          {t.home.privacy}
+        </a>
       </footer>
     </main>
   );

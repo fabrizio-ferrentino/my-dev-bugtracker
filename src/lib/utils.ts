@@ -14,3 +14,14 @@ export function getClientIp(headers: Headers): string {
     "unknown"
   );
 }
+
+/** Short date + time, e.g. "9 ott 2026, 14:05". */
+export function formatDateTime(iso: string, locale: string): string {
+  return new Date(iso).toLocaleString(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

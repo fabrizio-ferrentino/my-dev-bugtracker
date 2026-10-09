@@ -5,7 +5,7 @@ A minimal, self-hostable **bug tracker / helpdesk** template. Anyone can submit 
 ## Why this exists
 
 This project was born with a single goal: a complete, professional bug tracker
-you can **deploy at zero cost** — every piece of the stack runs on a generous
+you can **deploy at zero cost**, every piece of the stack runs on a generous
 free tier, with no credit card required and no paid service involved:
 
 | Piece | Service (free tier) | Cost |
@@ -16,20 +16,22 @@ free tier, with no credit card required and no paid service involved:
 | Anti-spam | Cloudflare Turnstile | €0 |
 
 The only thing that can cost money is your own custom domain, and only if you
-want one — everything else is free forever at this scale. No multi-tenancy, no
+want one, everything else is free forever at this scale. No multi-tenancy, no
 billing, no analytics, no overengineering: just a small product that does its
 job for €0.
 
 - Public report form (`/`) with screenshot upload + Cloudflare Turnstile
-- Bilingual UI (Italian/English) with a language switcher — no extra dependencies
+- Bilingual UI (Italian/English) with a language switcher, no extra dependencies
 - Confirmation page with a personal status link (`/success`, `/status`)
-- Private admin dashboard (`/admin`) — stats, search, filters, ticket detail, internal notes, history
+- Private admin dashboard (`/admin`) stats, search, filters, ticket detail, internal notes, history
+- Public replies from the admin, shown on the reporter's personal status link (optional email notice)
 - Email notification to the admin on every new ticket (Resend)
+- Privacy policy page (`/privacy`) as a placeholder to fill in
 - `BUG-YYYY-NNNN` ticket numbers, per-ticket secret access tokens, rate limiting, Zod validation, Supabase RLS
 
 Stack: **Next.js 14 (App Router) · TypeScript · Tailwind · Supabase (Postgres + Auth + Storage) · Resend · Cloudflare Turnstile**. Deploy anywhere Next.js runs (Vercel, etc.). Free tiers are enough.
 
-> This is a generic template — no personal names, domains or emails are hardcoded. All branding comes from environment variables.
+> This is a generic template, no personal names, domains or emails are hardcoded. All branding comes from environment variables.
 
 ## Quick start
 
@@ -46,19 +48,22 @@ Open http://localhost:3000.
 1. Create a free project at https://supabase.com.
 2. **SQL editor → New query** → paste the contents of `supabase/schema.sql` → run it. This creates:
    - enums (`bug_status`, `bug_priority`, `bug_type`, `bug_event_type`)
-   - tables `bug_reports`, `bug_events`, `ticket_counters`
+   - tables `bug_reports`, `bug_events`, `bug_comments` (public replies), `ticket_counters`
    - the `mint_ticket_number()` function (`BUG-YYYY-NNNN`)
    - `updated_at` trigger, indexes, and **Row Level Security** policies (anon: insert-only; authenticated admin: full access).
+
+   The script is idempotent. **Upgrading an existing install?** Run it again after pulling: it adds new tables (e.g. `bug_comments`) and enum values (`PUBLIC_REPLY_ADDED`, `PUBLIC_REPLY_DELETED`) without touching existing data.
 3. **Storage → New bucket** → name `screenshots` → **Private** (admin views images via signed URLs; nothing is public).
 4. **Authentication → Users → Add user** → create your admin with email + password (this is the login for `/admin/login`). Use the same email as `ADMIN_EMAIL` to enable the optional allowlist check.
-5. Copy **Project URL** and **anon public key** (Settings → API) into `.env.local`. Copy the **service_role secret key** into `SUPABASE_SERVICE_ROLE_KEY` (server only — never expose it).
+5. Copy **Project URL** and **anon public key** (Settings → API) into `.env.local`. Copy the **service_role secret key** into `SUPABASE_SERVICE_ROLE_KEY` (server only, never expose it).
 
-## 2. Resend setup (admin notifications)
+## 2. Resend setup (email notifications)
 
 1. Create a free account at https://resend.com and verify your sending domain (or use their onboarding domain for testing).
 2. Create an API key → `RESEND_API_KEY`.
 3. Set `ADMIN_EMAIL` to the inbox that receives new-ticket alerts, and `RESEND_FROM_EMAIL` to a verified sender like `Bug Tracker <bugs@example.com>`.
-4. If email is not configured, tickets still work — the app logs a warning and skips the notification.
+4. The same sender is used to notify reporters who left an email when you publish a public reply.
+5. If email is not configured, tickets and replies still work, the app logs a warning and skips the notification.
 
 ## 3. Cloudflare Turnstile setup (anti-spam)
 
@@ -109,8 +114,15 @@ The UI is bilingual (Italian default, English) with a switcher in every
 header. The language is stored in a `lang` cookie and rendered server-side,
 so there is no content flicker. All strings live in
 `src/lib/i18n/dictionaries.ts` (TypeScript enforces that both languages
-define the same keys). API error messages follow the same cookie; admin
-notification emails follow `EMAIL_LANG` (`it` default, `en` optional).
+define the same keys). API error messages follow the same cookie; all
+notification emails (admin alerts and reply notices to reporters) follow
+`EMAIL_LANG` (`it` default, `en` optional).
+
+### Privacy policy
+
+`/privacy` is linked from the form and the home footer but ships with a
+placeholder only. Write your own policy in `src/app/privacy/page.tsx` before
+going live.
 
 ## 5. Deploy
 
@@ -125,10 +137,11 @@ notification emails follow `EMAIL_LANG` (`it` default, `en` optional).
 |---|---|---|
 | `/` | public | Report form (no login). Auto-collects browser/OS/viewport/language. |
 | `/success` | public | Confirmation with ticket number + personal status link. |
-| `/status` | public | Status lookup. Ticket number alone shows minimal info; the personal link (`?token=…`) shows full public-safe info. Internal notes are never exposed. |
+| `/status` | public | Status lookup. Ticket number alone shows minimal info; the personal link (`?token=…`) shows full public-safe info and public replies. Internal notes are never exposed. |
+| `/privacy` | public | Privacy policy (placeholder to fill in). |
 | `/admin/login` | you | Supabase Auth email/password login. |
 | `/admin` | you | Stats, search, filters (status/priority/type/app), sorting, pagination. |
-| `/admin/bugs/[id]` | you | Full detail, screenshot, edit status/priority/type/notes, delete ticket, history timeline. |
+| `/admin/bugs/[id]` | you | Full detail, screenshot, edit status/priority/type/notes, public replies, copy personal link, delete ticket, history timeline. |
 | `POST /api/bugs` | public | Rate-limited (5/hour/IP), Turnstile-verified, Zod-validated ticket creation. |
 | `GET /api/status` | public | Rate-limited (30/min/IP) public-safe lookup. |
 
@@ -142,10 +155,11 @@ src/
 │   ├── page.tsx                 # public form
 │   ├── success/page.tsx         # confirmation
 │   ├── status/page.tsx          # public status lookup
+│   ├── privacy/page.tsx         # privacy policy (placeholder)
 │   ├── admin/
 │   │   ├── login/page.tsx
 │   │   ├── page.tsx             # dashboard
-│   │   ├── actions.ts           # server actions (update ticket, signed URLs)
+│   │   ├── actions.ts           # server actions (update ticket, public replies, signed URLs)
 │   │   └── bugs/[id]/page.tsx   # ticket detail
 │   └── api/
 │       ├── bugs/route.ts        # POST create ticket
@@ -153,7 +167,7 @@ src/
 ├── components/
 │   ├── ui/                      # minimal shadcn-style primitives
 │   ├── public/                  # report form, Turnstile, status lookup, copy-link
-│   └── admin/                   # badges, login/logout, ticket editor, delete
+│   └── admin/                   # badges, login/logout, ticket editor, replies, history, delete
 ├── lib/
 │   ├── supabase/ (client, server, admin)
 │   ├── i18n/                    # bilingual dictionaries (it/en) + lang helper

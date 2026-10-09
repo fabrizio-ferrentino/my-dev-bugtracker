@@ -63,3 +63,56 @@ export async function sendNewTicketEmail(
     console.error("[email] failed to send new-ticket notification:", err);
   }
 }
+
+/**
+ * Notify the reporter about a new public reply (best-effort).
+ * Call only when the ticket has a reporter email; failures are logged
+ * but never fail the admin action. Returns true only if Resend accepted it.
+ */
+export async function sendPublicReplyEmail(
+  to: string,
+  ticket: { ticket_number: string; title: string },
+  replyBody: string,
+  statusUrl: string,
+  t: Dict,
+): Promise<boolean> {
+  const from = process.env.RESEND_FROM_EMAIL?.trim();
+  const resend = getResend();
+
+  if (!resend || !from) {
+    console.warn(
+      "[email] Resend not configured (RESEND_API_KEY/RESEND_FROM_EMAIL) — skipping reply notification.",
+    );
+    return false;
+  }
+
+  const e = t.email;
+  const excerpt = replyBody.length > 800 ? replyBody.slice(0, 800) + "…" : replyBody;
+
+  try {
+    // Resend reports API failures in `error` instead of throwing.
+    const { error } = await resend.emails.send({
+      from,
+      to,
+      subject: `${e.replySubject} ${ticket.ticket_number}`,
+      text: [
+        `${e.replyHeading} ${ticket.ticket_number} — ${ticket.title}`,
+        ``,
+        excerpt,
+        ``,
+        `${e.viewReply} ${statusUrl}`,
+        ``,
+        `--`,
+        `${siteName} ${e.footer}`,
+      ].join("\n"),
+    });
+    if (error) {
+      console.error("[email] failed to send public-reply notification:", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[email] failed to send public-reply notification:", err);
+    return false;
+  }
+}

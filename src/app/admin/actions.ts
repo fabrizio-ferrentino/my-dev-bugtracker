@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
-import { adminUpdateSchema } from "@/lib/validation";
+import { adminReplySchema, adminUpdateSchema } from "@/lib/validation";
+import { sendPublicReplyEmail } from "@/lib/resend";
+import { appUrl } from "@/lib/constants";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { getLang } from "@/lib/i18n/server";
+import type { BugComment } from "@/types/bug";
 
 async function requireAdmin() {
   const supabase = createServerSupabase();
@@ -123,6 +126,143 @@ export async function updateTicket(
 
   revalidatePath("/admin");
   revalidatePath(`/admin/bugs/${id}`);
+  return { ok: true };
+}
+
+export interface AddPublicReplyResult extends UpdateTicketResult {
+  /** The stored row, so the client can render (and delete) it right away. */
+  reply?: BugComment;
+  /** True only if the reporter notification email was accepted. */
+  notified?: boolean;
+}
+
+/**
+ * Publish an admin reply visible on the personal status page + audit event.
+ * Notifies the reporter by email when an address is present (best-effort,
+ * never fails the action).
+ */
+export async function addPublicReply(
+  id: string,
+  input: unknown,
+): Promise<AddPublicReplyResult> {
+  const t = dictionaries[getLang()];
+  const parsed = adminReplySchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: t.detail.invalid };
+  }
+  const body = parsed.data.body;
+
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch {
+    return { ok: false, error: t.api.generic };
+  }
+  const { supabase, user } = ctx;
+
+  const { data: ticket, error: fetchError } = await supabase
+    .from("bug_reports")
+    .select("id,ticket_number,title,email,public_access_token")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !ticket) {
+    return { ok: false, error: t.api.notFound };
+  }
+
+  const { data: reply, error: insertError } = await supabase
+    .from("bug_comments")
+    .insert({
+      bug_id: id,
+      body,
+      author: "ADMIN",
+      created_by: user.id,
+    })
+    .select("*")
+    .single();
+
+  if (insertError || !reply) {
+    console.error("[admin] public reply insert failed:", insertError?.message);
+    return { ok: false, error: t.detail.saveError };
+  }
+
+  const { error: eventError } = await supabase.from("bug_events").insert({
+    bug_id: id,
+    event_type: "PUBLIC_REPLY_ADDED",
+    old_value: null,
+    new_value: body.length > 200 ? body.slice(0, 200) + "…" : body,
+    created_by: user.id,
+  });
+  if (eventError) {
+    console.error("[admin] audit insert failed:", eventError.message);
+  }
+
+  // Notify the reporter (best-effort; sendPublicReplyEmail never throws).
+  let notified = false;
+  if (ticket.email) {
+    const statusUrl = `${appUrl}/status?token=${encodeURIComponent(ticket.public_access_token)}`;
+    notified = await sendPublicReplyEmail(
+      ticket.email,
+      { ticket_number: ticket.ticket_number, title: ticket.title },
+      body,
+      statusUrl,
+      dictionaries[process.env.EMAIL_LANG === "en" ? "en" : "it"],
+    );
+  }
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/bugs/${id}`);
+  return { ok: true, reply: reply as BugComment, notified };
+}
+
+/** Delete a public reply + audit event. The public thread updates live. */
+export async function deletePublicReply(
+  bugId: string,
+  commentId: string,
+): Promise<UpdateTicketResult> {
+  const t = dictionaries[getLang()];
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch {
+    return { ok: false, error: t.api.generic };
+  }
+  const { supabase, user } = ctx;
+
+  const { data: comment, error: fetchError } = await supabase
+    .from("bug_comments")
+    .select("id,bug_id")
+    .eq("id", commentId)
+    .eq("bug_id", bugId)
+    .single();
+
+  if (fetchError || !comment) {
+    return { ok: false, error: t.api.notFound };
+  }
+
+  const { error: deleteError } = await supabase
+    .from("bug_comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (deleteError) {
+    console.error("[admin] public reply delete failed:", deleteError.message);
+    return { ok: false, error: t.detail.saveError };
+  }
+
+  const { error: eventError } = await supabase.from("bug_events").insert({
+    bug_id: bugId,
+    event_type: "PUBLIC_REPLY_DELETED",
+    old_value: null,
+    new_value: null,
+    created_by: user.id,
+  });
+  if (eventError) {
+    console.error("[admin] audit insert failed:", eventError.message);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/bugs/${bugId}`);
   return { ok: true };
 }
 

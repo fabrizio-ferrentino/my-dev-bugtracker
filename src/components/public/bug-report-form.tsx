@@ -11,7 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TurnstileWidget } from "./turnstile-widget";
 import { collectTechInfo } from "./tech-info";
-import { MAX_SCREENSHOT_BYTES, getApps } from "@/lib/constants";
+import { MAX_SCREENSHOT_BYTES, getApps, privacyUrl } from "@/lib/constants";
 import type { Dict } from "@/lib/i18n/dictionaries";
 import type { BugPriority, BugType } from "@/types/bug";
 import { BUG_PRIORITIES, BUG_TYPES } from "@/types/bug";
@@ -276,6 +276,18 @@ export function BugReportForm({ t }: { t: Dict }) {
               {t.form.captchaPending}
             </p>
           )}
+          <p className="text-center text-xs text-zinc-500">
+            {t.form.privacyLead}{" "}
+            <a
+              href={privacyUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400"
+            >
+              {t.form.privacyLink}
+            </a>
+            .
+          </p>
         </form>
       </CardContent>
     </Card>

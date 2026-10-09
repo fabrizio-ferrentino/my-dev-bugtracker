@@ -23,6 +23,7 @@ import { LangToggle } from "@/components/lang-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getApps, siteName } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 import { getLangAndDict } from "@/lib/i18n/server";
 import type { BugReport, BugPriority, BugStatus, BugType } from "@/types/bug";
 import { BUG_PRIORITIES, BUG_STATUSES, BUG_TYPES } from "@/types/bug";
@@ -43,16 +44,6 @@ interface SearchParams {
 }
 
 const PAGE_SIZE = 20;
-
-function formatDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default async function AdminDashboard({
   searchParams,
@@ -280,7 +271,7 @@ export default async function AdminDashboard({
                         </p>
                         <p className="truncate font-medium">{ticket.title}</p>
                         <p className="mt-0.5 text-xs text-zinc-500">
-                          {ticket.email ?? t.dashboard.noEmail} · {formatDate(ticket.created_at, locale)}
+                          {ticket.email ?? t.dashboard.noEmail} · {formatDateTime(ticket.created_at, locale)}
                           {ticket.app ? ` · ${ticket.app}` : ""}
                         </p>
                       </div>

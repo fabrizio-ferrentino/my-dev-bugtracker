@@ -3,8 +3,11 @@ import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogoutButton } from "@/components/admin/logout-button";
 import { DeleteTicketButton } from "@/components/admin/delete-ticket-button";
+import { HistoryList } from "@/components/admin/history-list";
 import { NavigatingLink } from "@/components/navigating-link";
+import { PublicReplies } from "@/components/admin/public-replies";
 import { TicketEditor } from "@/components/admin/ticket-editor";
+import { SimpleCopyButton } from "@/components/public/copy-link-button";
 import {
   PriorityBadge,
   StatusBadge,
@@ -12,22 +15,14 @@ import {
 } from "@/components/admin/badges";
 import { getScreenshotUrl } from "@/app/admin/actions";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { appUrl } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 import { getLangAndDict } from "@/lib/i18n/server";
-import type { BugEvent, BugReport } from "@/types/bug";
+import type { BugComment, BugEvent, BugReport } from "@/types/bug";
 
 export async function generateMetadata() {
   const { t } = getLangAndDict();
   return { title: t.meta.ticketTitle, robots: "noindex, nofollow" };
-}
-
-function formatDateTime(iso: string, locale: string): string {
-  return new Date(iso).toLocaleString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function Dl({ label, value }: { label: string; value: React.ReactNode }) {
@@ -67,6 +62,15 @@ export default async function TicketDetailPage({
     .eq("bug_id", ticketData.id)
     .order("created_at", { ascending: false });
   const timeline = (events ?? []) as BugEvent[];
+
+  const { data: comments } = await supabase
+    .from("bug_comments")
+    .select("*")
+    .eq("bug_id", ticketData.id)
+    .order("created_at", { ascending: true });
+  const replies = (comments ?? []) as BugComment[];
+
+  const statusUrl = `${appUrl}/status?token=${encodeURIComponent(ticketData.public_access_token)}`;
 
   const { url: screenshotUrl } = ticketData.screenshot_path
     ? await getScreenshotUrl(ticketData.screenshot_path)
@@ -111,6 +115,16 @@ export default async function TicketDetailPage({
               {ticketData.app && <Dl label={t.detail.application} value={ticketData.app} />}
               <Dl label={t.detail.created} value={formatDateTime(ticketData.created_at, locale)} />
               <Dl label={t.detail.updated} value={formatDateTime(ticketData.updated_at, locale)} />
+              <Dl
+                label={t.detail.publicLink}
+                value={
+                  <SimpleCopyButton
+                    text={statusUrl}
+                    copyLabel={t.success.copyLink}
+                    copiedLabel={t.success.copied}
+                  />
+                }
+              />
               <Dl label={t.detail.browser} value={ticketData.browser ?? "—"} />
               <Dl label={t.detail.os} value={ticketData.os ?? "—"} />
               <Dl label={t.detail.viewport} value={ticketData.viewport ?? "—"} />
@@ -176,45 +190,25 @@ export default async function TicketDetailPage({
 
       <Card className="mt-4">
         <CardHeader>
+          <CardTitle className="text-base">{t.detail.repliesTitle}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PublicReplies
+            id={ticketData.id}
+            t={t}
+            locale={locale}
+            hasReporterEmail={Boolean(ticketData.email)}
+            initialReplies={replies}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
           <CardTitle className="text-base">{t.detail.history}</CardTitle>
         </CardHeader>
         <CardContent>
-          {timeline.length === 0 ? (
-            <p className="text-sm text-zinc-500">{t.detail.noEvents}</p>
-          ) : (
-            <ul className="flex flex-col">
-              {timeline.map((ev, i) => (
-                <li key={ev.id} className="relative flex gap-3 pb-4 last:pb-0">
-                  {i < timeline.length - 1 && (
-                    <span
-                      aria-hidden
-                      className="absolute left-[5px] top-4 h-full w-px bg-zinc-200 dark:bg-zinc-800"
-                    />
-                  )}
-                  <span
-                    aria-hidden
-                    className="mt-1.5 size-[11px] shrink-0 rounded-full bg-indigo-500 ring-4 ring-indigo-500/15"
-                  />
-                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2">
-                    <span className="font-mono text-xs font-semibold">
-                      {ev.event_type}
-                    </span>
-                    {ev.old_value && (
-                      <span className="text-sm text-zinc-500">
-                        {ev.old_value} → {ev.new_value}
-                      </span>
-                    )}
-                    {!ev.old_value && ev.new_value && (
-                      <span className="text-sm text-zinc-500">{ev.new_value}</span>
-                    )}
-                    <span className="ml-auto text-xs text-zinc-400">
-                      {formatDateTime(ev.created_at, locale)}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <HistoryList events={timeline} t={t} locale={locale} />
         </CardContent>
       </Card>
     </main>

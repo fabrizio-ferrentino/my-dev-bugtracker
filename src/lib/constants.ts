@@ -22,6 +22,9 @@ export const STATUS_STYLES: Record<BugStatus, string> = {
     "bg-zinc-100 text-zinc-500 ring-zinc-500/20 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-400/20",
 };
 
+/** Service privacy policy (src/app/privacy/page.tsx). */
+export const privacyUrl = "/privacy";
+
 export const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_SCREENSHOT_MIME = [
   "image/png",

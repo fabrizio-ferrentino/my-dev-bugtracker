@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { STATUS_STYLES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Dict } from "@/lib/i18n/dictionaries";
-import type { PublicTicketInfo } from "@/types/bug";
+import type { PublicReply, PublicTicketInfo } from "@/types/bug";
 
 interface StatusResponse {
   ticket?: Partial<PublicTicketInfo> & {
@@ -21,6 +21,7 @@ interface StatusResponse {
     status: PublicTicketInfo["status"];
     updated_at: string;
   };
+  replies?: PublicReply[];
   limited?: boolean;
   hint?: string;
   error?: string;
@@ -185,6 +186,24 @@ export function StatusContent({ t, locale }: { t: Dict; locale: string }) {
               <p className="mt-2 text-sm text-zinc-500">
                 {t.statusPage.lastUpdated} {formatDate(result.ticket.updated_at, locale)}
               </p>
+              {result.replies && result.replies.length > 0 && (
+                <div className="mt-4 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+                  <p className="text-sm font-semibold">{t.statusPage.repliesTitle}</p>
+                  <div className="mt-2 flex flex-col gap-2">
+                    {result.replies.map((r) => (
+                      <div
+                        key={r.id}
+                        className="rounded-lg bg-white px-3 py-2.5 ring-1 ring-inset ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800"
+                      >
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{r.body}</p>
+                        <p className="mt-1.5 font-mono text-xs text-zinc-400">
+                          {formatDate(r.created_at, locale)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {result.limited && result.hint && (
                 <p className="mt-3 text-xs text-zinc-500">{result.hint}</p>
               )}

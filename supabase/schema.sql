@@ -24,8 +24,17 @@ end $$;
 do $$ begin
   create type bug_event_type as enum (
     'TICKET_CREATED', 'STATUS_CHANGED', 'PRIORITY_CHANGED',
-    'TYPE_CHANGED', 'NOTE_ADDED'
+    'TYPE_CHANGED', 'NOTE_ADDED', 'PUBLIC_REPLY_ADDED', 'PUBLIC_REPLY_DELETED'
   );
+exception when duplicate_object then null;
+end $$;
+-- Added after initial deploy: keep existing installs compatible.
+do $$ begin
+  alter type bug_event_type add value if not exists 'PUBLIC_REPLY_ADDED';
+exception when duplicate_object then null;
+end $$;
+do $$ begin
+  alter type bug_event_type add value if not exists 'PUBLIC_REPLY_DELETED';
 exception when duplicate_object then null;
 end $$;
 
@@ -114,6 +123,21 @@ create table if not exists public.bug_events (
 
 create index if not exists bug_events_bug_idx on public.bug_events (bug_id, created_at desc);
 
+-- --- Public replies (admin -> reporter thread) -------------------
+-- Visible ONLY via the personal status link (?token=), never via the
+-- ticket-number lookup. Internal notes stay in bug_reports.admin_notes.
+create table if not exists public.bug_comments (
+  id uuid primary key default gen_random_uuid(),
+  bug_id uuid not null references public.bug_reports (id) on delete cascade,
+  body text not null check (char_length(body) between 1 and 2000),
+  -- ADMIN today; REPORTER reserved for a future token-based reply endpoint.
+  author text not null default 'ADMIN' check (author in ('ADMIN', 'REPORTER')),
+  created_at timestamptz not null default now(),
+  created_by uuid null
+);
+
+create index if not exists bug_comments_bug_idx on public.bug_comments (bug_id, created_at asc);
+
 -- --- updated_at trigger ----------------------------------------
 create or replace function public.touch_updated_at()
 returns trigger
@@ -134,6 +158,7 @@ create trigger bug_reports_touch
 -- --- Row Level Security ----------------------------------------
 alter table public.bug_reports enable row level security;
 alter table public.bug_events enable row level security;
+alter table public.bug_comments enable row level security;
 alter table public.ticket_counters enable row level security;
 
 -- Anonymous (public reporters):
@@ -156,6 +181,15 @@ create policy "auth_all_reports"
 drop policy if exists "auth_all_events" on public.bug_events;
 create policy "auth_all_events"
   on public.bug_events for all
+  to authenticated
+  using (true)
+  with check (true);
+
+-- Public replies: admins manage them; the public reads them only through
+-- the service-role status API (anon has no direct access).
+drop policy if exists "auth_all_comments" on public.bug_comments;
+create policy "auth_all_comments"
+  on public.bug_comments for all
   to authenticated
   using (true)
   with check (true);
