@@ -6,6 +6,7 @@ import {
 import type { Dict, Lang } from "./i18n/dictionaries";
 import { dictionaries } from "./i18n/dictionaries";
 import { BUG_PRIORITIES, BUG_STATUSES, BUG_TYPES } from "@/types/bug";
+import { normalizeTicketNumber } from "./ticket";
 
 export function createBugSchema(lang: Lang) {
   const v: Dict["validation"] = dictionaries[lang].validation;
@@ -80,6 +81,10 @@ export type AdminReplyInput = z.infer<typeof adminReplySchema>;
 
 export const ticketNumberSchema = z
   .string()
-  .trim()
-  .toUpperCase()
-  .regex(/^BUG-\d{4}-\d{4}$/, "Invalid ticket format. Expected e.g. BUG-2026-0001.");
+  .transform(normalizeTicketNumber)
+  .pipe(
+    z.string().regex(
+      /^BUG-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/,
+      "Invalid ticket format. Expected e.g. BUG-7K3M-Q9TD.",
+    ),
+  );

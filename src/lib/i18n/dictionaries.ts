@@ -83,7 +83,7 @@ const it = {
   statusPage: {
     title: "Controlla lo stato",
     description:
-      "Inserisci il numero ticket (es. BUG-2026-0001). Per i dettagli completi, apri il link personale ricevuto dopo la segnalazione.",
+      "Inserisci il numero ticket (es. BUG-7K3M-Q9TD). Per i dettagli completi, apri il link personale ricevuto dopo la segnalazione.",
     statusOf: "Stato della tua segnalazione:",
     ticketLabel: "Numero ticket",
     search: "Cerca",
@@ -197,7 +197,7 @@ const it = {
     generic: "Qualcosa è andato storto. Riprova.",
     notFound: "Ticket non trovato.",
     provideTicket: "Fornisci un numero ticket o un link di accesso.",
-    badFormat: "Formato non valido. Esempio: BUG-2026-0001.",
+    badFormat: "Formato non valido. Esempio: BUG-7K3M-Q9TD.",
     statusHint:
       "Apri il tuo link personale di stato (ricevuto dopo la segnalazione) per vedere i dettagli completi.",
   },
@@ -312,7 +312,7 @@ const en: Dict = {
   statusPage: {
     title: "Check report status",
     description:
-      "Enter your ticket number (e.g. BUG-2026-0001). For full details, open the personal status link you received after reporting.",
+      "Enter your ticket number (e.g. BUG-7K3M-Q9TD). For full details, open the personal status link you received after reporting.",
     statusOf: "Status of your report:",
     ticketLabel: "Ticket number",
     search: "Search",
@@ -427,7 +427,7 @@ const en: Dict = {
     generic: "Something went wrong. Please try again.",
     notFound: "Ticket not found.",
     provideTicket: "Provide a ticket number or an access link.",
-    badFormat: "Invalid ticket format. Expected e.g. BUG-2026-0001.",
+    badFormat: "Invalid ticket format. Expected e.g. BUG-7K3M-Q9TD.",
     statusHint:
       "Open your personal status link (received after reporting) to see full details.",
   },

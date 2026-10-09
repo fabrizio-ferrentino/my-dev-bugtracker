@@ -107,7 +107,7 @@ export function StatusContent({ t, locale }: { t: Dict; locale: string }) {
                     id="ticket"
                     value={ticketInput}
                     onChange={(e) => setTicketInput(e.target.value.toUpperCase())}
-                    placeholder="BUG-2026-0001"
+                    placeholder="BUG-7K3M-Q9TD"
                     className="font-mono"
                     aria-describedby="ticket-hint"
                   />

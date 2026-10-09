@@ -6,7 +6,7 @@ import {
   checkRateLimit,
 } from "@/lib/rate-limit";
 import { createBugSchema, validateScreenshot } from "@/lib/validation";
-import { newBugId, newPublicAccessToken } from "@/lib/ticket";
+import { newBugId, newPublicAccessToken, newTicketNumber } from "@/lib/ticket";
 import { sendNewTicketEmail } from "@/lib/resend";
 import { getApps } from "@/lib/constants";
 import { dictionaries } from "@/lib/i18n/dictionaries";
@@ -119,8 +119,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: t.api.turnstileFail }, { status: 400 });
   }
 
-  // 4. Persist via service-role (anon key has INSERT-only RLS, but the
-  //    server needs the generated ticket_number + token back).
+  // 4. Persist via service-role (anon has no direct table access: every
+  //    ticket goes through the checks above).
   let supabase;
   try {
     supabase = createAdminSupabase();
@@ -132,89 +132,37 @@ export async function POST(req: Request) {
   const id = newBugId();
   const publicAccessToken = newPublicAccessToken();
 
-  // Mint a human-readable ticket number. Uses the mint_ticket_number()
-  // RPC (atomic per-year counter); falls back to a unique random suffix
-  // if the RPC is unavailable.
+  // Random public ticket number (BUG-7K3M-Q9TD). A collision is practically
+  // impossible, but if the unique index reports one (23505) retry with a new one.
   let ticketNumber: string | null = null;
-  try {
-    const { data, error } = await supabase.rpc("mint_ticket_number");
-    if (!error && typeof data === "string") ticketNumber = data;
-  } catch {
-    // fall through to fallback below
+  for (let attempt = 0; attempt < 5 && !ticketNumber; attempt++) {
+    const candidate = newTicketNumber();
+    const { error } = await supabase.from("bug_reports").insert({
+      id,
+      ticket_number: candidate,
+      public_access_token: publicAccessToken,
+      title: input.title,
+      description: input.description,
+      type: input.type,
+      priority: input.priority,
+      status: "OPEN",
+      email: input.email ?? null,
+      app: appValue,
+      browser: input.browser || null,
+      os: input.os || null,
+      viewport: input.viewport || null,
+      user_agent: input.userAgent || null,
+      language: input.language || null,
+      source_url: input.sourceUrl || null,
+    });
+    if (!error) {
+      ticketNumber = candidate;
+    } else if (error.code !== "23505") {
+      console.error("[api/bugs] insert failed:", error.message);
+      return NextResponse.json({ error: t.api.generic }, { status: 500 });
+    }
   }
   if (!ticketNumber) {
-    const year = new Date().getUTCFullYear();
-    for (let attempt = 0; attempt < 5 && !ticketNumber; attempt++) {
-      const candidate = `BUG-${year}-${String(
-        Math.floor(1000 + Math.random() * 9000),
-      )}`;
-      const { error } = await supabase.from("bug_reports").insert({
-        id,
-        ticket_number: candidate,
-        public_access_token: publicAccessToken,
-        title: input.title,
-        description: input.description,
-        type: input.type,
-        priority: input.priority,
-        status: "OPEN",
-        email: input.email ?? null,
-        app: appValue,
-        browser: input.browser || null,
-        os: input.os || null,
-        viewport: input.viewport || null,
-        user_agent: input.userAgent || null,
-        language: input.language || null,
-        source_url: input.sourceUrl || null,
-      });
-      if (!error) {
-        ticketNumber = candidate;
-      } else if (error.code !== "23505") {
-        console.error("[api/bugs] insert failed:", error.message);
-        return NextResponse.json({ error: t.api.generic }, { status: 500 });
-      }
-    }
-    if (!ticketNumber) {
-      return NextResponse.json({ error: t.api.generic }, { status: 500 });
-    }
-    // Ticket already inserted by the fallback loop — continue to screenshot.
-    await supabase.from("bug_events").insert({
-      bug_id: id,
-      event_type: "TICKET_CREATED",
-    });
-    const created = await finishTicket(supabase, id, file);
-    return NextResponse.json({
-      ok: true,
-      ticketNumber,
-      statusUrl: publicAccessToken,
-      screenshotSaved: created,
-    });
-  }
-
-  const { error: insertError } = await supabase.from("bug_reports").insert({
-    id,
-    ticket_number: ticketNumber,
-    public_access_token: publicAccessToken,
-    title: input.title,
-    description: input.description,
-    type: input.type,
-    priority: input.priority,
-    status: "OPEN",
-    email: input.email ?? null,
-    app: appValue,
-    browser: input.browser || null,
-    os: input.os || null,
-    viewport: input.viewport || null,
-    user_agent: input.userAgent || null,
-    language: input.language || null,
-    source_url: input.sourceUrl || null,
-  });
-
-  if (insertError) {
-    console.error("[api/bugs] insert failed:", insertError.message);
-    // Extremely rare race on ticket_number — ask the user to retry.
-    if (insertError.code === "23505") {
-      return NextResponse.json({ error: t.api.generic }, { status: 500 });
-    }
     return NextResponse.json({ error: t.api.generic }, { status: 500 });
   }
 

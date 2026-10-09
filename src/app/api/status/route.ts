@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 /**
  * Public ticket-status lookup (spec §18–19).
  * - ?token=<public_access_token> → fuller public-safe info + public replies.
- * - ?ticket=BUG-YYYY-NNNN → minimal info only (number, status, updated_at)
+ * - ?ticket=BUG-XXXX-XXXX → minimal info only (number, status, updated_at)
  *   so sequential numbers cannot leak anything sensitive, not even titles.
  * NEVER returns admin_notes, email, user_agent or technical details.
  */
