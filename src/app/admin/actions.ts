@@ -305,7 +305,20 @@ export async function deleteTicket(
     return { ok: false, error: t.api.notFound };
   }
 
+  // Delete the row first: if it fails, the ticket keeps its screenshot.
+  // bug_events / bug_comments rows are removed automatically (ON DELETE CASCADE).
+  const { error: deleteError } = await supabase
+    .from("bug_reports")
+    .delete()
+    .eq("id", id);
+
+  if (deleteError) {
+    console.error("[admin] delete failed:", deleteError.message);
+    return { ok: false, error: t.detail.saveError };
+  }
+
   // Remove the screenshot via service-role (no authenticated delete policy).
+  // Best-effort: an orphaned file is harmless, the ticket is already gone.
   if (current.screenshot_path) {
     try {
       const admin = createAdminSupabase();
@@ -318,17 +331,6 @@ export async function deleteTicket(
     } catch (err) {
       console.error("[admin] screenshot delete failed:", err);
     }
-  }
-
-  // bug_events rows are removed automatically (ON DELETE CASCADE).
-  const { error: deleteError } = await supabase
-    .from("bug_reports")
-    .delete()
-    .eq("id", id);
-
-  if (deleteError) {
-    console.error("[admin] delete failed:", deleteError.message);
-    return { ok: false, error: t.detail.saveError };
   }
 
   revalidatePath("/admin");
